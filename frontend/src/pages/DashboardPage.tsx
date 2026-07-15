@@ -1,0 +1,10 @@
+import { AppBar, Box, Button, Card, CardContent, Chip, Container, Grid, Stack, Toolbar, Typography } from '@mui/material'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../auth/AuthContext'
+
+export function DashboardPage() {
+  const { profile, signOut } = useAuth(); const navigate = useNavigate(); if (!profile) return null
+  const logout = async () => { await signOut(); navigate('/login') }
+  const items = [['Company', profile.company.name], ['Role', profile.role.replace('_', ' ')], ['Account status', profile.status], ['Last login', profile.last_login ? new Date(profile.last_login).toLocaleString() : 'First sign-in']]
+  return <Box minHeight="100vh" bgcolor="#f5f7fb"><AppBar position="static" elevation={0}><Toolbar><Typography sx={{ mr: 1 }}>▣</Typography><Typography variant="h6" sx={{ flexGrow: 1 }}>RetailPulse</Typography><Button color="inherit" onClick={logout}>Sign out</Button></Toolbar></AppBar><Container maxWidth="lg" sx={{ py: 5 }}><Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={2} mb={4}><Box><Typography variant="h4" fontWeight={700}>Good to see you, {profile.name.split(' ')[0]}</Typography><Typography color="text.secondary" mt={1}>Your organization analytics workspace is ready.</Typography></Box><Chip label={profile.email} variant="outlined" sx={{ alignSelf: 'start', bgcolor: 'background.paper' }}/></Stack><Grid container spacing={2}>{items.map(([label, value]) => <Grid key={label} size={{ xs: 12, sm: 6, md: 3 }}><Card variant="outlined"><CardContent><Typography color="text.secondary" variant="body2">{label}</Typography><Typography fontWeight={700} mt={1}>{value}</Typography></CardContent></Card></Grid>)}</Grid><Card variant="outlined" sx={{ mt: 3 }}><CardContent><Typography variant="h6" fontWeight={700}>Tenant-secure workspace</Typography><Typography color="text.secondary" mt={1}>All products, inventory, users, and future analytics requests are scoped to {profile.company.name}.</Typography></CardContent></Card></Container></Box>
+}
