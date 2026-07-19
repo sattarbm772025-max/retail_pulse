@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form'
 import { Link as RouterLink, useNavigate } from 'react-router-dom'
 import { z } from 'zod'
 import { api } from '../api/client'
-import { useAuth } from '../auth/AuthContext'
+import { useAuth } from '../context/AuthContext'
 import type { AuthTokens } from '../types'
 import { AuthLayout } from '../layouts/AuthLayout'
 
@@ -25,7 +25,13 @@ export function LoginPage() {
   const navigate = useNavigate(); const { signIn } = useAuth(); const [error, setError] = useState('')
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginFields>({ resolver: zodResolver(loginSchema) })
   const submit = async (fields: LoginFields) => { try { setError(''); const { data } = await api.post<AuthTokens>('/auth/login', fields); await signIn(data); navigate('/dashboard') } catch (e: any) { setError(e.response?.data?.detail ?? 'Unable to sign in. Please try again.') } }
-  return <AuthLayout title="Welcome back" subtitle="Sign in to your RetailPulse workspace"><form onSubmit={handleSubmit(submit)}><Stack spacing={2.5}>{error && <Alert severity="error">{error}</Alert>}<Field label="Email" autoComplete="email" {...register('email')} error={errors.email?.message} /><Field label="Password" type="password" autoComplete="current-password" {...register('password')} error={errors.password?.message} /><Button type="submit" size="large" variant="contained" disabled={isSubmitting}>{isSubmitting ? 'Signing in…' : 'Sign in'}</Button><Typography textAlign="center" variant="body2">New to RetailPulse? <Link component={RouterLink} to="/register">Register your company</Link></Typography></Stack></form></AuthLayout>
+  return <AuthLayout title="Welcome back" subtitle="Sign in to your RetailPulse workspace"><form onSubmit={handleSubmit(submit)}><Stack spacing={2.5}>{error && <Alert severity="error">{error}</Alert>}<Field label="Email" autoComplete="email" {...register('email')} error={errors.email?.message} /><Field label="Password" type="password" autoComplete="current-password" {...register('password')} error={errors.password?.message} /><Typography textAlign="right" variant="body2"><Link component={RouterLink} to="/forgot-password">Forgot password?</Link></Typography><Button type="submit" size="large" variant="contained" disabled={isSubmitting}>{isSubmitting ? 'Signing in…' : 'Sign in'}</Button><Typography textAlign="center" variant="body2">New to RetailPulse? <Link component={RouterLink} to="/register">Register your company</Link></Typography></Stack></form></AuthLayout>
+}
+
+export function ForgotPasswordPage() {
+  const [email, setEmail] = useState(''); const [message, setMessage] = useState(''); const [error, setError] = useState('')
+  const submit = async (event: React.FormEvent) => { event.preventDefault(); try { setError(''); const response = await api.post('/auth/forgot-password', { email }); setMessage(response.data.message) } catch (e: any) { setError(e.response?.data?.detail ?? 'Unable to process this request.') } }
+  return <AuthLayout title="Reset your password" subtitle="Enter your work email to request reset instructions."><form onSubmit={submit}><Stack spacing={2.5}>{message && <Alert severity="success">{message}</Alert>}{error && <Alert severity="error">{error}</Alert>}<TextField label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} required fullWidth/><Button type="submit" variant="contained">Request reset</Button><Typography textAlign="center" variant="body2"><Link component={RouterLink} to="/login">Back to sign in</Link></Typography></Stack></form></AuthLayout>
 }
 
 export function RegisterPage() {

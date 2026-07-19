@@ -10,6 +10,7 @@ from app.services.product_service import (
     get_product,
     update_product,
     delete_product
+    , get_summary
 )
 
 router = APIRouter(
@@ -29,10 +30,20 @@ def create(
 
 @router.get("/")
 def all_products(
+    search: str | None = None,
+    category_id: int | None = None,
+    status: str | None = None,
+    brand: str | None = None,
+    sort: str = "recent",
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
-    return get_products(db, current_user)
+    return get_products(db, current_user, search, category_id, status, brand, sort)
+
+
+@router.get("/summary")
+def summary(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    return get_summary(db, current_user)
 
 
 @router.get("/{product_id}")

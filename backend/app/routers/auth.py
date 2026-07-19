@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.schemas.auth import CompanyRegister, LoginRequest, RefreshRequest, PasswordChangeRequest
+from app.schemas.auth import CompanyRegister, LoginRequest, RefreshRequest, PasswordChangeRequest, ForgotPasswordRequest
 from app.services.auth_service import (
     register_company,
     login_user,
@@ -13,6 +13,7 @@ from app.services.auth_service import (
     refresh_access_token,
     get_profile,
     change_password,
+    request_password_reset,
 )
 from app.models.user import User
 
@@ -81,3 +82,8 @@ def update_password(
 ):
     ip_address, browser = request_metadata(request)
     return change_password(current_user, payload.current_password, payload.new_password, db, ip_address, browser)
+
+
+@router.post("/forgot-password")
+def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    return request_password_reset(payload.email, db)

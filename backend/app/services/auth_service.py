@@ -5,6 +5,7 @@ from fastapi import HTTPException
 from app.models.company import Company
 from app.models.user import User
 from app.models.refresh_token import RefreshToken
+from app.models.category import Category
 
 from app.schemas.auth import CompanyRegister
 from app.core.security import (
@@ -78,6 +79,10 @@ def register_company(
         )
         db.add(admin)
         db.flush()
+        db.add_all([
+            Category(company_id=company.id, name=name, description=f"Default {name} category", status="ACTIVE")
+            for name in ("Mobile", "Laptop", "Accessories", "Clothing")
+        ])
         create_audit_log(db, company.id, admin.id, "Company Registered", commit=False)
         db.commit()
     except Exception:
@@ -249,3 +254,9 @@ def change_password(user: User, current_password: str, new_password: str, db: Se
     create_audit_log(db, user.company_id, user.id, "Password Changed", ip_address, browser, commit=False)
     db.commit()
     return {"message": "Password changed successfully"}
+
+
+def request_password_reset(email: str, db: Session):
+    # Intentionally generic until an email provider and signed reset-link flow are configured.
+    # Never reveal whether an account exists.
+    return {"message": "If an account exists for this email, password reset instructions will be sent."}

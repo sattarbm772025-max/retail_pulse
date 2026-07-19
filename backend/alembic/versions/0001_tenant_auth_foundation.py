@@ -60,9 +60,41 @@ def upgrade() -> None:
         sa.Column("browser", sa.String(length=255)),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
     )
+    op.create_table(
+        "categories",
+        sa.Column("id", sa.Integer(), primary_key=True),
+        sa.Column("company_id", sa.Integer(), sa.ForeignKey("companies.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("name", sa.String(length=100), nullable=False),
+        sa.Column("description", sa.String(length=255)),
+        sa.Column("status", sa.String(length=20), nullable=False, server_default="ACTIVE"),
+        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.UniqueConstraint("company_id", "name", name="uq_category_company_name"),
+    )
+    op.create_table(
+        "products",
+        sa.Column("id", sa.Integer(), primary_key=True),
+        sa.Column("company_id", sa.Integer(), sa.ForeignKey("companies.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("category_id", sa.Integer(), sa.ForeignKey("categories.id", ondelete="RESTRICT"), nullable=False),
+        sa.Column("name", sa.String(length=200), nullable=False),
+        sa.Column("sku", sa.String(length=100), nullable=False),
+        sa.Column("brand", sa.String(length=100)),
+        sa.Column("description", sa.String(length=1000)),
+        sa.Column("unit_price", sa.Float(), nullable=False),
+        sa.Column("cost_price", sa.Float(), nullable=False),
+        sa.Column("stock_quantity", sa.Integer(), nullable=False, server_default="0"),
+        sa.Column("unit_of_measure", sa.String(length=50), nullable=False, server_default="Unit"),
+        sa.Column("status", sa.String(length=20), nullable=False, server_default="ACTIVE"),
+        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.UniqueConstraint("company_id", "sku", name="uq_product_company_sku"),
+        sa.UniqueConstraint("company_id", "category_id", "name", name="uq_product_company_category_name"),
+    )
 
 
 def downgrade() -> None:
+    op.drop_table("products")
+    op.drop_table("categories")
     op.drop_table("audit_logs")
     op.drop_index("ix_refresh_tokens_token_hash", table_name="refresh_tokens")
     op.drop_index("ix_refresh_tokens_user_id", table_name="refresh_tokens")
