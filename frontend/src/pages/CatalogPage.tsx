@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Alert, Box, Button, Card, CardContent, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, Grid, InputLabel, MenuItem, Select, Stack, Tab, Tabs, TextField, Typography } from '@mui/material'
 import { catalogApi, type Category, type CategoryPayload, type Product, type ProductPayload } from '../api/catalogApi'
 import { DashboardLayout } from '../layouts/DashboardLayout'
+import { useSearchParams } from 'react-router-dom'
 
 const blankCategory: CategoryPayload = { name: '', description: '', status: 'ACTIVE' }
 const blankProduct: ProductPayload = { name: '', sku: '', category_id: 0, brand: '', description: '', unit_price: 0, cost_price: 0, stock_quantity: 0, unit_of_measure: 'Unit', status: 'ACTIVE' }
@@ -14,7 +15,7 @@ const errorMessage = (error: unknown) => {
 }
 
 export function CatalogPage() {
-  const [tab, setTab] = useState(0); const [search, setSearch] = useState(''); const [status, setStatus] = useState(''); const [categoryId, setCategoryId] = useState(''); const [brand, setBrand] = useState(''); const [sort, setSort] = useState('recent')
+  const [searchParams, setSearchParams] = useSearchParams(); const tab = searchParams.get('tab') === 'products' ? 1 : 0; const setTab = (value: number) => setSearchParams({ tab: value === 1 ? 'products' : 'categories' }); const [search, setSearch] = useState(''); const [status, setStatus] = useState(''); const [categoryId, setCategoryId] = useState(''); const [brand, setBrand] = useState(''); const [sort, setSort] = useState('recent')
   const summary = useQuery({ queryKey: ['catalog-summary'], queryFn: () => catalogApi.summary().then(r => r.data) })
   const categories = useQuery({ queryKey: ['categories', search], queryFn: () => catalogApi.categories(search).then(r => r.data) })
   const products = useQuery({ queryKey: ['products', search, status, categoryId, brand, sort], queryFn: () => catalogApi.products({ search, status: status || undefined, category_id: categoryId || undefined, brand, sort }).then(r => r.data) })
