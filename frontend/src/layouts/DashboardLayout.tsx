@@ -1,13 +1,710 @@
-import { Avatar, Box, Button, Drawer, List, ListItemButton, ListItemText, Menu, MenuItem, Stack, Toolbar, Typography } from '@mui/material'
-import { useState, type ReactNode } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import {
+  Avatar,
+  Box,
+  Button,
+  Drawer,
+  List,
+  ListItemButton,
+  ListItemText,
+  Menu,
+  MenuItem,
+  Stack,
+  Toolbar,
+  Typography,
+} from "@mui/material";
 
-const links = [{ label: 'Dashboard', path: '/dashboard' }, { label: 'Sales', path: '/sales' }, { label: 'Categories', path: '/catalog?tab=categories' }, { label: 'Products', path: '/catalog?tab=products' }, { label: 'Inventory', path: '/dashboard' }, { label: 'Reports', path: '/dashboard' }]
-export function DashboardLayout({ children }: { children: ReactNode }) {
-  const { profile, signOut } = useAuth(); const navigate = useNavigate(); const location = useLocation(); const [anchor, setAnchor] = useState<HTMLElement | null>(null); const [mobileOpen, setMobileOpen] = useState(false)
-  const logout = async () => { await signOut(); navigate('/login') }
-  const sidebar = <Box sx={{ height: '100%', bgcolor: '#061a3a', color: 'white', p: 2 }}><Stack spacing={.5} mb={4}><Typography fontWeight={800} fontSize={20}>RetailPulse</Typography><Typography variant="caption" sx={{ opacity: .7 }}>Analytics</Typography></Stack><List disablePadding>{links.map(link => <ListItemButton key={link.label} selected={location.pathname === link.path && !(link.label === 'Categories' && !location.search)} onClick={() => { navigate(link.path); setMobileOpen(false) }} sx={{ borderRadius: 2, mb: .5, minHeight: 44, '&.Mui-selected': { bgcolor: 'rgba(255,255,255,.13)' }, '&:hover': { bgcolor: 'rgba(255,255,255,.09)' } }}><ListItemText primary={link.label} primaryTypographyProps={{ fontSize: 14, fontWeight: 600 }}/></ListItemButton>)}</List><Box mt="auto" pt={4}><Typography variant="caption" sx={{ opacity: .7 }}>Legend</Typography><Stack direction="row" spacing={1} mt={1}><Box sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: '#4ade80' }}/><Typography variant="caption">Active</Typography><Box sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: '#fbbf24', ml: 1 }}/><Typography variant="caption">Low stock</Typography></Stack></Box></Box>
-  const title = location.pathname === '/sales' ? 'Sales Management' : location.pathname === '/catalog' ? 'Product & Category Management' : 'Dashboard'
-  return <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#f5f7fb' }}><Drawer variant="permanent" sx={{ display: { xs: 'none', md: 'block' }, width: 240, flexShrink: 0, '& .MuiDrawer-paper': { width: 240, border: 0 } }}>{sidebar}</Drawer><Drawer open={mobileOpen} onClose={() => setMobileOpen(false)} sx={{ display: { xs: 'block', md: 'none' }, '& .MuiDrawer-paper': { width: 260, border: 0 } }}>{sidebar}</Drawer><Box sx={{ flexGrow: 1, minWidth: 0 }}><Toolbar sx={{ minHeight: { xs: 60, md: 72 }, px: { xs: 1, sm: 3 }, bgcolor: 'background.paper', borderBottom: '1px solid', borderColor: 'divider', justifyContent: 'space-between' }}><Stack direction="row" alignItems="center" spacing={1}><Button sx={{ display: { xs: 'inline-flex', md: 'none' }, minWidth: 44 }} onClick={() => setMobileOpen(true)}>Menu</Button><Typography fontWeight={700} noWrap>{title}</Typography></Stack><Button onClick={e => setAnchor(e.currentTarget)} sx={{ textTransform: 'none', color: 'text.primary', gap: 1, minWidth: 44 }}><Avatar sx={{ width: 34, height: 34, bgcolor: 'primary.main' }}>{profile?.name.charAt(0)}</Avatar><Box textAlign="left" sx={{ display: { xs: 'none', sm: 'block' } }}><Typography variant="body2" fontWeight={700}>{profile?.name}</Typography><Typography variant="caption" color="text.secondary">{profile?.role.replace('_', ' ')}</Typography></Box></Button><Menu anchorEl={anchor} open={Boolean(anchor)} onClose={() => setAnchor(null)}><Box px={2} py={1}><Typography fontWeight={700}>{profile?.name}</Typography><Typography variant="body2" color="text.secondary">{profile?.email}</Typography><Typography variant="body2" color="text.secondary">{profile?.company.name}</Typography></Box><MenuItem onClick={() => { setAnchor(null); navigate('/dashboard') }}>Profile details</MenuItem><MenuItem onClick={logout}>Sign out</MenuItem></Menu></Toolbar><Box sx={{ p: { xs: 1.5, sm: 2.5, md: 4 } }}>{children}</Box></Box></Box>
+import {
+  useState,
+  type ReactNode,
+} from "react";
+
+import {
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
+
+import { useAuth } from "../context/AuthContext";
+
+
+
+const links = [
+  {
+    label: "Dashboard",
+    path: "/dashboard",
+  },
+
+  {
+    label: "Sales",
+    path: "/sales",
+  },
+
+  {
+    label: "Categories",
+    path: "/catalog?tab=categories",
+  },
+
+  {
+    label: "Products",
+    path: "/catalog?tab=products",
+  },
+
+  {
+    label: "Inventory",
+    path: "/inventory",
+  },
+
+  {
+    label: "Reports",
+    path: "/dashboard",
+  },
+];
+
+
+
+export function DashboardLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
+
+  const {
+    profile,
+    signOut,
+  } = useAuth();
+
+
+  const navigate = useNavigate();
+
+  const location = useLocation();
+
+
+  const [
+    anchor,
+    setAnchor,
+  ] = useState<HTMLElement | null>(null);
+
+
+  const [
+    mobileOpen,
+    setMobileOpen,
+  ] = useState(false);
+
+
+
+  const logout = async () => {
+
+    await signOut();
+
+    navigate("/login");
+
+  };
+
+
+
+  const sidebar = (
+
+    <Box
+
+      sx={{
+
+        height: "100%",
+
+        bgcolor: "#061a3a",
+
+        color: "white",
+
+        p: 2,
+
+      }}
+
+    >
+
+      <Stack
+        spacing={0.5}
+        mb={4}
+      >
+
+        <Typography
+          fontWeight={800}
+          fontSize={20}
+        >
+          RetailPulse
+        </Typography>
+
+
+        <Typography
+          variant="caption"
+          sx={{
+            opacity: 0.7,
+          }}
+        >
+          Analytics
+        </Typography>
+
+      </Stack>
+
+
+
+      <List disablePadding>
+
+        {
+          links.map((link) => (
+
+            <ListItemButton
+
+              key={link.label}
+
+
+              selected={
+                location.pathname === link.path &&
+                !(
+                  link.label === "Categories" &&
+                  !location.search
+                )
+              }
+
+
+              onClick={() => {
+
+                navigate(link.path);
+
+                setMobileOpen(false);
+
+              }}
+
+
+              sx={{
+
+                borderRadius: 2,
+
+                mb: 0.5,
+
+                minHeight: 44,
+
+
+                "&.Mui-selected": {
+
+                  bgcolor:
+                    "rgba(255,255,255,.13)",
+
+                },
+
+
+                "&:hover": {
+
+                  bgcolor:
+                    "rgba(255,255,255,.09)",
+
+                },
+
+              }}
+
+            >
+
+              <ListItemText
+
+                primary={link.label}
+
+                primaryTypographyProps={{
+
+                  fontSize: 14,
+
+                  fontWeight: 600,
+
+                }}
+
+              />
+
+            </ListItemButton>
+
+          ))
+        }
+
+      </List>
+
+
+
+
+      <Box
+        mt="auto"
+        pt={4}
+      >
+
+        <Typography
+          variant="caption"
+          sx={{
+            opacity: 0.7,
+          }}
+        >
+          Legend
+        </Typography>
+
+
+        <Stack
+          direction="row"
+          spacing={1}
+          mt={1}
+          alignItems="center"
+        >
+
+          <Box
+            sx={{
+              width: 9,
+              height: 9,
+              borderRadius: "50%",
+              bgcolor: "#4ade80",
+            }}
+          />
+
+
+          <Typography variant="caption">
+            Active
+          </Typography>
+
+
+
+          <Box
+            sx={{
+              width: 9,
+              height: 9,
+              borderRadius: "50%",
+              bgcolor: "#fbbf24",
+              ml: 1,
+            }}
+          />
+
+
+          <Typography variant="caption">
+            Low stock
+          </Typography>
+
+
+        </Stack>
+
+      </Box>
+
+
+    </Box>
+
+  );
+
+
+
+
+  const title =
+    location.pathname === "/sales"
+
+      ? "Sales Management"
+
+      : location.pathname === "/inventory"
+
+      ? "Inventory Management"
+
+      : location.pathname === "/catalog"
+
+      ? "Product & Category Management"
+
+      : "Dashboard";
+
+
+
+
+  return (
+
+    <Box
+
+      sx={{
+
+        display: "flex",
+
+        minHeight: "100vh",
+
+        bgcolor: "#f5f7fb",
+
+      }}
+
+    >
+
+
+
+      {/* Desktop Sidebar */}
+
+      <Drawer
+
+        variant="permanent"
+
+        sx={{
+
+          display: {
+            xs: "none",
+            md: "block",
+          },
+
+
+          width: 240,
+
+
+          flexShrink: 0,
+
+
+          "& .MuiDrawer-paper": {
+
+            width: 240,
+
+            border: 0,
+
+          },
+
+        }}
+
+      >
+
+        {sidebar}
+
+      </Drawer>
+
+
+
+
+
+      {/* Mobile Sidebar */}
+
+      <Drawer
+
+        open={mobileOpen}
+
+        onClose={() =>
+          setMobileOpen(false)
+        }
+
+
+        sx={{
+
+          display: {
+            xs: "block",
+            md: "none",
+          },
+
+
+          "& .MuiDrawer-paper": {
+
+            width: 260,
+
+            border: 0,
+
+          },
+
+        }}
+
+      >
+
+        {sidebar}
+
+      </Drawer>
+
+
+
+
+
+
+      <Box
+
+        sx={{
+
+          flexGrow: 1,
+
+          minWidth: 0,
+
+        }}
+
+      >
+
+
+        <Toolbar
+
+          sx={{
+
+            minHeight: {
+
+              xs: 60,
+
+              md: 72,
+
+            },
+
+
+            px: {
+
+              xs: 1,
+
+              sm: 3,
+
+            },
+
+
+            bgcolor:
+              "background.paper",
+
+
+            borderBottom:
+              "1px solid",
+
+
+            borderColor:
+              "divider",
+
+
+            justifyContent:
+              "space-between",
+
+          }}
+
+        >
+
+
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={1}
+          >
+
+            <Button
+
+              sx={{
+
+                display: {
+
+                  xs: "inline-flex",
+
+                  md: "none",
+
+                },
+
+                minWidth: 44,
+
+              }}
+
+
+              onClick={() =>
+                setMobileOpen(true)
+              }
+
+            >
+
+              Menu
+
+            </Button>
+
+
+            <Typography
+              fontWeight={700}
+              noWrap
+            >
+              {title}
+            </Typography>
+
+
+          </Stack>
+
+
+
+
+
+          <Button
+
+            onClick={(event) =>
+              setAnchor(
+                event.currentTarget
+              )
+            }
+
+
+            sx={{
+
+              textTransform: "none",
+
+              color: "text.primary",
+
+              gap: 1,
+
+              minWidth: 44,
+
+            }}
+
+          >
+
+            <Avatar
+
+              sx={{
+
+                width: 34,
+
+                height: 34,
+
+                bgcolor:
+                  "primary.main",
+
+              }}
+
+            >
+
+              {profile?.name.charAt(0)}
+
+            </Avatar>
+
+
+
+            <Box
+
+              textAlign="left"
+
+              sx={{
+
+                display: {
+
+                  xs: "none",
+
+                  sm: "block",
+
+                },
+
+              }}
+
+            >
+
+              <Typography
+                variant="body2"
+                fontWeight={700}
+              >
+                {profile?.name}
+              </Typography>
+
+
+              <Typography
+                variant="caption"
+                color="text.secondary"
+              >
+                {
+                  profile?.role.replace(
+                    "_",
+                    " "
+                  )
+                }
+              </Typography>
+
+
+            </Box>
+
+
+          </Button>
+
+
+
+
+
+          <Menu
+
+            anchorEl={anchor}
+
+            open={
+              Boolean(anchor)
+            }
+
+
+            onClose={() =>
+              setAnchor(null)
+            }
+
+          >
+
+            <Box
+              px={2}
+              py={1}
+            >
+
+              <Typography fontWeight={700}>
+                {profile?.name}
+              </Typography>
+
+
+              <Typography
+                variant="body2"
+                color="text.secondary"
+              >
+                {profile?.email}
+              </Typography>
+
+
+              <Typography
+                variant="body2"
+                color="text.secondary"
+              >
+                {profile?.company.name}
+              </Typography>
+
+
+            </Box>
+
+
+
+            <MenuItem
+
+              onClick={() => {
+
+                setAnchor(null);
+
+                navigate("/dashboard");
+
+              }}
+
+            >
+              Profile details
+            </MenuItem>
+
+
+
+            <MenuItem onClick={logout}>
+              Sign out
+            </MenuItem>
+
+
+          </Menu>
+
+
+        </Toolbar>
+
+
+
+
+
+        <Box
+
+          sx={{
+
+            p: {
+
+              xs: 1.5,
+
+              sm: 2.5,
+
+              md: 4,
+
+            },
+
+          }}
+
+        >
+
+          {children}
+
+        </Box>
+
+
+      </Box>
+
+
+    </Box>
+
+  );
+
 }
