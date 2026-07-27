@@ -308,7 +308,9 @@ def get_inventory(
     category_id=None,
     brand=None,
     stock_status_filter=None,
-    sort="updated"
+    sort="updated",
+    page=1,
+    page_size=10,
 ):
 
     query = (
@@ -373,22 +375,22 @@ def get_inventory(
     }
 
 
+    page = max(page, 1)
+    page_size = min(max(page_size, 1), 100)
+    total = query.count()
     inventories = (
-        query
-        .order_by(
-            sorting.get(
-                sort,
-                sorting["updated"]
-            )
-        )
+        query.order_by(sorting.get(sort, sorting["updated"]))
+        .offset((page - 1) * page_size)
+        .limit(page_size)
         .all()
     )
-
-
-    return [
-        serialize_inventory(item)
-        for item in inventories
-    ]
+    return {
+        "items": [serialize_inventory(item) for item in inventories],
+        "page": page,
+        "page_size": page_size,
+        "total": total,
+        "total_pages": max((total + page_size - 1) // page_size, 1),
+    }
 
 
 # =====================================================
@@ -427,11 +429,17 @@ def adjust_inventory(
         )
 
 
-    quantity = (
-        -request.quantity
-        if request.adjustment_type == "STOCK_OUT"
-        else request.quantity
-    )
+    if request.adjustment_type == "STOCK_OUT":
+        quantity = -request.quantity
+    elif request.adjustment_type == "MANUAL_ADJUSTMENT":
+        if not request.direction:
+            raise HTTPException(
+                status_code=422,
+                detail="Manual adjustments require an increase or decrease direction",
+            )
+        quantity = request.quantity if request.direction == "INCREASE" else -request.quantity
+    else:
+        quantity = request.quantity
 
 
     inventory = apply_movement(
@@ -458,7 +466,8 @@ def update_reorder_level(
     db,
     current_user,
     inventory_id: int,
-    reorder_level: int
+    reorder_level: int,
+    reason: str,
 ):
 
     inventory = (
@@ -504,7 +513,7 @@ def update_reorder_level(
         "Reorder Level Updated",
         commit=False,
         entity_type="PRODUCT",
-        entity_name=inventory.product.name
+        entity_name=inventory.product.name,
     )
 
 
@@ -515,7 +524,7 @@ def update_reorder_level(
         previous_status,
         "REORDER_LEVEL",
         0,
-        "Reorder level updated"
+        reason
     )
 
 
@@ -534,7 +543,9 @@ def update_reorder_level(
 def movements(
     db,
     current_user,
-    inventory_id: int
+    inventory_id: int,
+    page: int = 1,
+    page_size: int = 10,
 ):
 
     inventory = (
@@ -554,7 +565,9 @@ def movements(
         )
 
 
-    records = (
+    page = max(page, 1)
+    page_size = min(max(page_size, 1), 100)
+    query = (
         db.query(InventoryMovement)
         .filter(
             InventoryMovement.inventory_id == inventory_id
@@ -562,11 +575,20 @@ def movements(
         .order_by(
             InventoryMovement.created_at.desc()
         )
-        .all()
     )
+    total = query.count()
+    records = query.offset((page - 1) * page_size).limit(page_size).all()
 
+    from app.models.user import User
+    user_ids = {record.performed_by for record in records}
+    users = (
+        db.query(User).filter(User.id.in_(user_ids)).all()
+        if user_ids else []
+    )
+    user_names = {user.id: user.name for user in users}
 
-    return [
+    return {
+        "items": [
         {
             "id": movement.id,
             "movement_type": movement.movement_type,
@@ -576,10 +598,16 @@ def movements(
             "reason": movement.reason,
             "remarks": movement.remarks,
             "performed_by": movement.performed_by,
+            "performed_by_name": user_names.get(movement.performed_by, "Unknown user"),
             "created_at": movement.created_at
         }
         for movement in records
-    ]
+        ],
+        "page": page,
+        "page_size": page_size,
+        "total": total,
+        "total_pages": max((total + page_size - 1) // page_size, 1),
+    }
 
 
 

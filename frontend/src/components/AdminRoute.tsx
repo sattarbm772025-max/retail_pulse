@@ -1,8 +1,6 @@
 import { Alert, Box } from "@mui/material";
 import { Navigate, Outlet } from "react-router-dom";
-
 import { useAuth } from "../context/AuthContext";
-
 export function AdminRoute() {
   const { profile } = useAuth();
 
@@ -10,14 +8,8 @@ export function AdminRoute() {
     return <Navigate to="/login" replace />;
   }
 
-  const allowedRoles = [
-    "SUPER_ADMIN",
-    "COMPANY_ADMIN",
-  ];
-
-  const hasAdminAccess = allowedRoles.includes(
-    profile.role
-  );
+  const allowedRoles = ["SUPER_ADMIN", "COMPANY_ADMIN"];
+  const hasAdminAccess = allowedRoles.includes(profile.role);
 
   if (!hasAdminAccess) {
     return (

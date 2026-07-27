@@ -1,8 +1,6 @@
 import { Box, CircularProgress } from "@mui/material";
 import { Navigate, Outlet } from "react-router-dom";
-
 import { useAuth } from "../context/AuthContext";
-
 export function ProtectedRoute() {
   const { profile, loading } = useAuth();
 
@@ -21,12 +19,7 @@ export function ProtectedRoute() {
   }
 
   if (!profile) {
-    return (
-      <Navigate
-        to="/login"
-        replace
-      />
-    );
+    return <Navigate to="/login" replace />;
   }
 
   return <Outlet />;

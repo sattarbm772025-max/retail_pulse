@@ -7,249 +7,86 @@ import {
   type ReactNode,
 } from "react";
 
-import {
-  api,
-  tokenStore,
-} from "../api/client";
+import { api, tokenStore } from "../api/client";
 
-import type {
-  AuthTokens,
-  Profile,
-} from "../types";
-
-
+import type { AuthTokens, Profile } from "../types";
 
 type AuthContextValue = {
-
   profile: Profile | null;
-
   loading: boolean;
-
-  signIn: (
-    tokens: AuthTokens
-  ) => Promise<void>;
-
+  signIn: (tokens: AuthTokens) => Promise<void>;
   signOut: () => Promise<void>;
-
 };
 
+const AuthContext = createContext<AuthContextValue | null>(null);
 
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [profile, setProfile] = useState<Profile | null>(null);
 
-const AuthContext =
-  createContext<AuthContextValue | null>(
-    null
-  );
+  const [loading, setLoading] = useState(true);
 
-
-
-
-export function AuthProvider({
-  children,
-}: {
-  children: ReactNode;
-}) {
-
-
-  const [
-    profile,
-    setProfile,
-  ] = useState<Profile | null>(null);
-
-
-
-  const [
-    loading,
-    setLoading,
-  ] = useState(true);
-
-
-
-
-
-  const loadProfile = useCallback(
-    async () => {
-
-
-      if (!tokenStore.getAccess()) {
-
-        setLoading(false);
-
-        return;
-
-      }
-
-
-
-      try {
-
-        const response =
-          await api.get<Profile>(
-            "/auth/me"
-          );
-
-
-        setProfile(
-          response.data
-        );
-
-
-      } catch {
-
-        tokenStore.clear();
-
-        setProfile(null);
-
-
-      } finally {
-
-        setLoading(false);
-
-      }
-
-
-    },
-    []
-  );
-
-
-
-
-
-  useEffect(() => {
-
-    void loadProfile();
-
-  }, [loadProfile]);
-
-
-
-
-
-
-
-  const signIn = async (
-    tokens: AuthTokens
-  ) => {
-
-
-    tokenStore.set(
-
-      tokens.access_token,
-
-      tokens.refresh_token
-
-    );
-
-
-    setLoading(true);
-
-
-    await loadProfile();
-
-
-  };
-
-
-
-
-
-
-
-  const signOut = async () => {
-
-
-    const refresh =
-      tokenStore.getRefresh();
-
-
-
-    try {
-
-
-      if (refresh) {
-
-
-        await api.post(
-          "/auth/logout",
-          {
-            refresh_token: refresh,
-          }
-        );
-
-
-      }
-
-
-    } finally {
-
-
-      tokenStore.clear();
-
-
-      setProfile(null);
-
-
+  const loadProfile = useCallback(async () => {
+    if (!tokenStore.getAccess()) {
+      setLoading(false);
+      return;
     }
 
+    try {
+      const response = await api.get<Profile>("/auth/me");
 
+      setProfile(response.data);
+    } catch {
+      tokenStore.clear();
+      setProfile(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadProfile();
+  }, [loadProfile]);
+
+  const signIn = async (tokens: AuthTokens) => {
+    tokenStore.set(tokens.access_token, tokens.refresh_token);
+    setLoading(true);
+    await loadProfile();
   };
 
-
-
-
-
-
+  const signOut = async () => {
+    const refresh = tokenStore.getRefresh();
+    try {
+      if (refresh) {
+        await api.post("/auth/logout", {
+          refresh_token: refresh,
+        });
+      }
+    } finally {
+      tokenStore.clear();
+      setProfile(null);
+    }
+  };
 
   return (
-
     <AuthContext.Provider
-
       value={{
-
         profile,
-
         loading,
-
         signIn,
-
         signOut,
-
       }}
-
     >
-
       {children}
-
     </AuthContext.Provider>
-
   );
-
 }
 
-
-
-
-
-
 export function useAuth() {
-
-
-  const context =
-    useContext(AuthContext);
-
-
+  const context = useContext(AuthContext);
 
   if (!context) {
-
-    throw new Error(
-      "useAuth must be used inside AuthProvider"
-    );
-
+    throw new Error("useAuth must be used inside AuthProvider");
   }
 
-
-
   return context;
-
-
 }

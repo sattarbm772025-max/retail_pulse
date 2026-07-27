@@ -1,10 +1,5 @@
 import { api } from "./axios";
-
-import type {
-  AuthTokens,
-  Profile,
-} from "../types";
-
+import type { AuthTokens, Profile } from "../types";
 
 export type RegisterCompanyPayload = {
   company_name: string;
@@ -19,43 +14,20 @@ export type RegisterCompanyPayload = {
   confirm_password: string;
 };
 
-
 export const authApi = {
-  login: (
-    email: string,
-    password: string
-  ) =>
-    api.post<AuthTokens>(
-      "/auth/login",
-      {
-        email,
-        password,
-      }
-    ),
+  login: (email: string, password: string) =>
+    api.post<AuthTokens>("/auth/login", {
+      email,
+      password,
+    }),
 
+  register: (payload: RegisterCompanyPayload) =>
+    api.post("/auth/register", payload),
 
-  register: (
-    payload: RegisterCompanyPayload
-  ) =>
-    api.post(
-      "/auth/register",
-      payload
-    ),
+  profile: () => api.get<Profile>("/auth/me"),
 
-
-  profile: () =>
-    api.get<Profile>(
-      "/auth/me"
-    ),
-
-
-  logout: (
-    refresh_token: string
-  ) =>
-    api.post(
-      "/auth/logout",
-      {
-        refresh_token,
-      }
-    ),
+  logout: (refresh_token: string) =>
+    api.post("/auth/logout", {
+      refresh_token,
+    }),
 };

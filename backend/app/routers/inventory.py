@@ -2,10 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.dependencies import (
-    get_current_user,
-    require_role,
-)
+from app.core.dependencies import require_role
 
 from app.schemas.inventory import (
     InventoryAdjustment,
@@ -33,6 +30,7 @@ admin_role = require_role(
     "SUPER_ADMIN",
     "COMPANY_ADMIN",
 )
+inventory_viewer_role = require_role("SUPER_ADMIN", "COMPANY_ADMIN", "ANALYST")
 
 
 
@@ -47,9 +45,11 @@ def all_inventory(
     brand: str | None = None,
     stock_status: str | None = None,
     sort: str = "updated",
+    page: int = 1,
+    page_size: int = 10,
 
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user=Depends(inventory_viewer_role),
 ):
     """
     Get company inventory.
@@ -70,6 +70,8 @@ def all_inventory(
         brand,
         stock_status,
         sort,
+        page,
+        page_size,
     )
 
 
@@ -81,7 +83,7 @@ def all_inventory(
 @router.get("/summary")
 def get_summary(
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user=Depends(inventory_viewer_role),
 ):
     """
     Inventory dashboard cards.
@@ -101,7 +103,7 @@ def get_summary(
 @router.get("/charts")
 def get_charts(
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user=Depends(inventory_viewer_role),
 ):
     """
     Inventory analytics charts.
@@ -121,9 +123,11 @@ def get_charts(
 @router.get("/{inventory_id}/movements")
 def history(
     inventory_id: int,
+    page: int = 1,
+    page_size: int = 10,
 
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user=Depends(inventory_viewer_role),
 ):
     """
     Get inventory movement history.
@@ -133,6 +137,8 @@ def history(
         db,
         current_user,
         inventory_id,
+        page,
+        page_size,
     )
 
 
@@ -187,4 +193,5 @@ def reorder(
         current_user,
         inventory_id,
         payload.reorder_level,
+        payload.reason,
     )

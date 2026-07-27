@@ -1,6 +1,4 @@
 import { api } from "./axios";
-
-
 export type Category = {
   id: number;
   name: string;
@@ -8,7 +6,6 @@ export type Category = {
   status: string;
   product_count: number;
 };
-
 
 export type Product = {
   id: number;
@@ -25,7 +22,6 @@ export type Product = {
   status: string;
 };
 
-
 export type CatalogSummary = {
   total_products: number;
   active_products: number;
@@ -33,13 +29,11 @@ export type CatalogSummary = {
   total_categories: number;
 };
 
-
 export type CategoryPayload = {
   name: string;
   description: string;
   status: string;
 };
-
 
 export type ProductPayload = {
   name: string;
@@ -54,91 +48,34 @@ export type ProductPayload = {
   status: string;
 };
 
-
 export const catalogApi = {
-  summary: () =>
-    api.get<CatalogSummary>(
-      "/products/summary"
-    ),
+  summary: () => api.get<CatalogSummary>("/products/summary"),
 
+  categories: (search = "") =>
+    api.get<Category[]>("/categories/", {
+      params: {
+        search: search || undefined,
+      },
+    }),
 
-  categories: (
-    search = ""
-  ) =>
-    api.get<Category[]>(
-      "/categories/",
-      {
-        params: {
-          search: search || undefined,
-        },
-      }
-    ),
+  createCategory: (payload: CategoryPayload) =>
+    api.post<Category>("/categories/", payload),
 
+  updateCategory: (id: number, payload: CategoryPayload) =>
+    api.put<Category>(`/categories/${id}`, payload),
 
-  createCategory: (
-    payload: CategoryPayload
-  ) =>
-    api.post<Category>(
-      "/categories/",
-      payload
-    ),
+  deleteCategory: (id: number) => api.delete(`/categories/${id}`),
 
+  products: (params: Record<string, string | number | undefined>) =>
+    api.get<Product[]>("/products/", {
+      params,
+    }),
 
-  updateCategory: (
-    id: number,
-    payload: CategoryPayload
-  ) =>
-    api.put<Category>(
-      `/categories/${id}`,
-      payload
-    ),
+  createProduct: (payload: ProductPayload) =>
+    api.post<Product>("/products/", payload),
 
+  updateProduct: (id: number, payload: ProductPayload) =>
+    api.put<Product>(`/products/${id}`, payload),
 
-  deleteCategory: (
-    id: number
-  ) =>
-    api.delete(
-      `/categories/${id}`
-    ),
-
-
-  products: (
-    params: Record<
-      string,
-      string | number | undefined
-    >
-  ) =>
-    api.get<Product[]>(
-      "/products/",
-      {
-        params,
-      }
-    ),
-
-
-  createProduct: (
-    payload: ProductPayload
-  ) =>
-    api.post<Product>(
-      "/products/",
-      payload
-    ),
-
-
-  updateProduct: (
-    id: number,
-    payload: ProductPayload
-  ) =>
-    api.put<Product>(
-      `/products/${id}`,
-      payload
-    ),
-
-
-  deleteProduct: (
-    id: number
-  ) =>
-    api.delete(
-      `/products/${id}`
-    ),
+  deleteProduct: (id: number) => api.delete(`/products/${id}`),
 };

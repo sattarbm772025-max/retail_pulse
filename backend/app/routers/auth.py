@@ -12,6 +12,7 @@ from app.schemas.auth import (
     RefreshRequest,
     PasswordChangeRequest,
     ForgotPasswordRequest,
+    ResetPasswordRequest,
 )
 
 from app.services.auth_service import (
@@ -22,6 +23,7 @@ from app.services.auth_service import (
     get_profile,
     change_password,
     request_password_reset,
+    reset_password,
 )
 
 
@@ -218,3 +220,9 @@ def forgot_password(
         payload.email,
         db,
     )
+
+
+@router.post("/reset-password")
+def complete_password_reset(payload: ResetPasswordRequest, db: Session = Depends(get_db)):
+    """Complete a password reset using the short-lived reset token delivered by email."""
+    return reset_password(payload.token, payload.new_password, db)

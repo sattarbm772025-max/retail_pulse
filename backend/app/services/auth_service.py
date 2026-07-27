@@ -14,6 +14,7 @@ from app.core.security import (
     verify_password,
     create_access_token,
     create_refresh_token,
+    create_password_reset_token,
     hash_token
 )
 
@@ -367,8 +368,21 @@ def refresh_access_token(
     )
 
 
+    rotated_refresh_token = create_refresh_token({"sub": str(user.id)})
+    rotated_payload = jwt.get_unverified_claims(rotated_refresh_token)
+    db.delete(token)
+    db.add(
+        RefreshToken(
+            user_id=user.id,
+            token_hash=hash_token(rotated_refresh_token),
+            expires_at=datetime.fromtimestamp(rotated_payload["exp"], tz=timezone.utc),
+        )
+    )
+    db.commit()
+
     return {
         "access_token": access_token,
+        "refresh_token": rotated_refresh_token,
         "token_type": "bearer"
     }
 
@@ -465,7 +479,29 @@ def request_password_reset(
     db: Session
 ):
 
-    return {
-        "message":
-        "If an account exists for this email, password reset instructions will be sent."
-    }
+    user = db.query(User).filter(User.email == email).first()
+    if user and user.status == "ACTIVE":
+        reset_token = create_password_reset_token({"sub": str(user.id)})
+        # Integrate this value with the configured email provider in production.
+        # Do not return it in the response, which avoids account enumeration and token exposure.
+        print(f"Password reset requested for user {user.id}; token generated for email delivery.")
+    return {"message": "If an account exists for this email, password reset instructions will be sent."}
+
+
+def reset_password(token: str, new_password: str, db: Session):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        if payload.get("type") != "password_reset":
+            raise JWTError()
+        user_id = int(payload["sub"])
+    except (JWTError, KeyError, ValueError):
+        raise HTTPException(status_code=400, detail="This password reset link is invalid or expired")
+
+    user = db.query(User).filter(User.id == user_id, User.status == "ACTIVE").first()
+    if not user:
+        raise HTTPException(status_code=400, detail="This password reset link is invalid or expired")
+    user.password = hash_password(new_password)
+    db.query(RefreshToken).filter(RefreshToken.user_id == user.id).delete()
+    create_audit_log(db, user.company_id, user.id, "Password Changed", commit=False)
+    db.commit()
+    return {"message": "Password reset successfully. Please sign in."}

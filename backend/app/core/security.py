@@ -61,5 +61,14 @@ def create_refresh_token(data: dict):
     )
 
 
+def create_password_reset_token(data: dict):
+    payload = data.copy()
+    payload.update({
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=30),
+        "type": "password_reset",
+    })
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
+
 def hash_token(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()

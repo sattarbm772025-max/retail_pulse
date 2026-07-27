@@ -19,9 +19,7 @@ import { AuthLayout } from "../layouts/AuthLayout";
 
 const loginSchema = z.object({
   email: z.email("Enter a valid email"),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
 const registerSchema = z
@@ -35,9 +33,7 @@ const registerSchema = z
     owner_name: z.string().min(2),
     owner_email: z.email(),
 
-    password: z
-      .string()
-      .min(8, "Password must be at least 8 characters"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
 
     confirm_password: z.string(),
   })
@@ -56,10 +52,7 @@ function Field({
 }: {
   label: string;
   error?: string;
-} & Omit<
-  React.ComponentProps<typeof TextField>,
-  "error" | "helperText"
->) {
+} & Omit<React.ComponentProps<typeof TextField>, "error" | "helperText">) {
   return (
     <TextField
       label={label}
@@ -89,18 +82,14 @@ export function LoginPage() {
     try {
       setError("");
 
-      const { data } = await api.post<AuthTokens>(
-        "/auth/login",
-        fields
-      );
+      const { data } = await api.post<AuthTokens>("/auth/login", fields);
 
       await signIn(data);
 
       navigate("/dashboard");
     } catch (e: any) {
       setError(
-        e.response?.data?.detail ??
-          "Unable to sign in. Please try again."
+        e.response?.data?.detail ?? "Unable to sign in. Please try again.",
       );
     }
   };
@@ -112,11 +101,7 @@ export function LoginPage() {
     >
       <form onSubmit={handleSubmit(submit)}>
         <Stack spacing={2.5}>
-          {error && (
-            <Alert severity="error">
-              {error}
-            </Alert>
-          )}
+          {error && <Alert severity="error">{error}</Alert>}
 
           <Field
             label="Email"
@@ -133,14 +118,8 @@ export function LoginPage() {
             error={errors.password?.message}
           />
 
-          <Typography
-            textAlign="right"
-            variant="body2"
-          >
-            <Link
-              component={RouterLink}
-              to="/forgot-password"
-            >
+          <Typography textAlign="right" variant="body2">
+            <Link component={RouterLink} to="/forgot-password">
               Forgot password?
             </Link>
           </Typography>
@@ -151,20 +130,12 @@ export function LoginPage() {
             variant="contained"
             disabled={isSubmitting}
           >
-            {isSubmitting
-              ? "Signing in…"
-              : "Sign in"}
+            {isSubmitting ? "Signing in…" : "Sign in"}
           </Button>
 
-          <Typography
-            textAlign="center"
-            variant="body2"
-          >
+          <Typography textAlign="center" variant="body2">
             New to RetailPulse?{" "}
-            <Link
-              component={RouterLink}
-              to="/register"
-            >
+            <Link component={RouterLink} to="/register">
               Register your company
             </Link>
           </Typography>
@@ -190,10 +161,7 @@ export function ForgotPasswordPage() {
 
       setMessage(response.data.message);
     } catch (e: any) {
-      setError(
-        e.response?.data?.detail ??
-          "Unable to process this request."
-      );
+      setError(e.response?.data?.detail ?? "Unable to process this request.");
     }
   };
 
@@ -204,17 +172,9 @@ export function ForgotPasswordPage() {
     >
       <form onSubmit={submit}>
         <Stack spacing={2.5}>
-          {message && (
-            <Alert severity="success">
-              {message}
-            </Alert>
-          )}
+          {message && <Alert severity="success">{message}</Alert>}
 
-          {error && (
-            <Alert severity="error">
-              {error}
-            </Alert>
-          )}
+          {error && <Alert severity="error">{error}</Alert>}
 
           <TextField
             label="Email"
@@ -225,21 +185,12 @@ export function ForgotPasswordPage() {
             fullWidth
           />
 
-          <Button
-            type="submit"
-            variant="contained"
-          >
+          <Button type="submit" variant="contained">
             Request reset
           </Button>
 
-          <Typography
-            textAlign="center"
-            variant="body2"
-          >
-            <Link
-              component={RouterLink}
-              to="/login"
-            >
+          <Typography textAlign="center" variant="body2">
+            <Link component={RouterLink} to="/login">
               Back to sign in
             </Link>
           </Typography>
@@ -274,10 +225,7 @@ export function RegisterPage() {
         navigate("/login");
       }, 1200);
     } catch (e: any) {
-      setError(
-        e.response?.data?.detail ??
-          "Unable to register the company."
-      );
+      setError(e.response?.data?.detail ?? "Unable to register the company.");
     }
   };
 
@@ -288,11 +236,7 @@ export function RegisterPage() {
     >
       <form onSubmit={handleSubmit(submit)}>
         <Stack spacing={2}>
-          {error && (
-            <Alert severity="error">
-              {error}
-            </Alert>
-          )}
+          {error && <Alert severity="error">{error}</Alert>}
 
           {done && (
             <Alert severity="success">
@@ -300,9 +244,7 @@ export function RegisterPage() {
             </Alert>
           )}
 
-          <Typography variant="subtitle2">
-            Company details
-          </Typography>
+          <Typography variant="subtitle2">Company details</Typography>
 
           <Field
             label="Company name"
@@ -334,10 +276,7 @@ export function RegisterPage() {
             error={errors.company_phone?.message}
           />
 
-          <Typography
-            variant="subtitle2"
-            sx={{ pt: 1 }}
-          >
+          <Typography variant="subtitle2" sx={{ pt: 1 }}>
             Administrator
           </Typography>
 
@@ -373,20 +312,12 @@ export function RegisterPage() {
             variant="contained"
             disabled={isSubmitting || done}
           >
-            {isSubmitting
-              ? "Creating workspace…"
-              : "Create workspace"}
+            {isSubmitting ? "Creating workspace…" : "Create workspace"}
           </Button>
 
-          <Typography
-            textAlign="center"
-            variant="body2"
-          >
+          <Typography textAlign="center" variant="body2">
             Already registered?{" "}
-            <Link
-              component={RouterLink}
-              to="/login"
-            >
+            <Link component={RouterLink} to="/login">
               Sign in
             </Link>
           </Typography>
