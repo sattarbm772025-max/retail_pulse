@@ -10,11 +10,17 @@ export type AnalyticsDashboard = {
   channels: Metric[];
   inventory_categories: Metric[];
   stock_status: Metric[];
-  low_stock: { name: string; sku: string; available: number; reorder_level: number }[];
+  low_stock: {
+    name: string;
+    sku: string;
+    available: number;
+    reorder_level: number;
+  }[];
   out_of_stock: { name: string; sku: string }[];
 };
 
 export const analyticsApi = {
-  dashboard: (params: Record<string, string | undefined>) => api.get<AnalyticsDashboard>("/analytics/dashboard", { params }),
+  dashboard: (params: Record<string, string | undefined>) =>
+    api.get<AnalyticsDashboard>("/analytics/dashboard", { params }),
   recordExport: () => api.post("/analytics/dashboard/export"),
 };

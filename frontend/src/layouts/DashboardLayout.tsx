@@ -272,92 +272,92 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
           </Stack>
 
           <Stack direction="row" alignItems="center" spacing={0.5}>
-          <Button
-            onClick={(event) => setAnchor(event.currentTarget)}
+            <Button
+              onClick={(event) => setAnchor(event.currentTarget)}
 
-            sx={{
-              textTransform: "none",
-              color: "text.primary",
-              gap: 1,
-              minWidth: 44,
-            }}
-          >
-            <Avatar
               sx={{
-                width: 34,
-                height: 34,
-                bgcolor: "primary.main",
+                textTransform: "none",
+                color: "text.primary",
+                gap: 1,
+                minWidth: 44,
               }}
             >
-              {profile?.name.charAt(0)}
-            </Avatar>
-
-            <Box
-              textAlign="left"
-              sx={{
-                display: "none",
-              }}
-            >
-              <Typography variant="body2" fontWeight={700}>
-                {profile?.name}
-              </Typography>
-
-              <Typography variant="caption" color="text.secondary">
-                {profile?.role.replace("_", " ")}
-              </Typography>
-            </Box>
-          </Button>
-
-          {canViewNotifications && (
-            <>
-              <IconButton
-                aria-label="Open notifications"
-                onClick={(event) => {
-                  event.currentTarget.blur();
-                  setNotificationAnchor(event.currentTarget);
+              <Avatar
+                sx={{
+                  width: 34,
+                  height: 34,
+                  bgcolor: "primary.main",
                 }}
               >
-                <Badge
-                  badgeContent={notifications.data?.length ?? 0}
-                  color="error"
-                  max={99}
-                >
-                  <NotificationsNoneIcon />
-                </Badge>
-              </IconButton>
-              <Menu
-                anchorEl={notificationAnchor}
-                open={Boolean(notificationAnchor)}
-                onClose={() => setNotificationAnchor(null)}
+                {profile?.name.charAt(0)}
+              </Avatar>
+
+              <Box
+                textAlign="left"
+                sx={{
+                  display: "none",
+                }}
               >
-                <Box px={2} py={1} minWidth={300}>
-                  <Typography fontWeight={700}>Notifications</Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Inventory alerts for your company
-                  </Typography>
-                </Box>
-                {notifications.data?.length ? (
-                  notifications.data.map((notification) => (
-                    <MenuItem
-                      key={notification.id}
-                      sx={{ whiteSpace: "normal", maxWidth: 360 }}
-                    >
-                      <Box>
-                        <Typography variant="body2">
-                          {notification.message}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {new Date(notification.created_at).toLocaleString()}
-                        </Typography>
-                      </Box>
-                    </MenuItem>
-                  ))
-                ) : (
-                  <MenuItem disabled>No new inventory notifications</MenuItem>
-                )}
-              </Menu>
-            </>
-          )}
+                <Typography variant="body2" fontWeight={700}>
+                  {profile?.name}
+                </Typography>
+
+                <Typography variant="caption" color="text.secondary">
+                  {profile?.role.replace("_", " ")}
+                </Typography>
+              </Box>
+            </Button>
+
+            {canViewNotifications && (
+              <>
+                <IconButton
+                  aria-label="Open notifications"
+                  onClick={(event) => {
+                    event.currentTarget.blur();
+                    setNotificationAnchor(event.currentTarget);
+                  }}
+                >
+                  <Badge
+                    badgeContent={notifications.data?.length ?? 0}
+                    color="error"
+                    max={99}
+                  >
+                    <NotificationsNoneIcon />
+                  </Badge>
+                </IconButton>
+                <Menu
+                  anchorEl={notificationAnchor}
+                  open={Boolean(notificationAnchor)}
+                  onClose={() => setNotificationAnchor(null)}
+                >
+                  <Box px={2} py={1} minWidth={300}>
+                    <Typography fontWeight={700}>Notifications</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Inventory alerts for your company
+                    </Typography>
+                  </Box>
+                  {notifications.data?.length ? (
+                    notifications.data.map((notification) => (
+                      <MenuItem
+                        key={notification.id}
+                        sx={{ whiteSpace: "normal", maxWidth: 360 }}
+                      >
+                        <Box>
+                          <Typography variant="body2">
+                            {notification.message}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {new Date(notification.created_at).toLocaleString()}
+                          </Typography>
+                        </Box>
+                      </MenuItem>
+                    ))
+                  ) : (
+                    <MenuItem disabled>No new inventory notifications</MenuItem>
+                  )}
+                </Menu>
+              </>
+            )}
           </Stack>
 
           <Menu
