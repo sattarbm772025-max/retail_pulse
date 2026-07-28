@@ -33,6 +33,10 @@ const links = [
     label: "Sales",
     path: "/sales",
   },
+  {
+    label: "Analytics",
+    path: "/analytics",
+  },
 
   {
     label: "Categories",
