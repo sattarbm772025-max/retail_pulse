@@ -7,3 +7,5 @@ from .category import Category
 from .inventory import Inventory, InventoryMovement
 from .sale import Sale, SaleItem
 from .notification import Notification
+from .customer import Customer, CustomerPurchaseSummary, CustomerTimeline
+from .forecast import DemandForecast, ForecastHistory

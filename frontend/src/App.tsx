@@ -18,6 +18,7 @@ import { SalesPage } from "./pages/SalesPage";
 import { InventoryPage } from "./pages/InventoryPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { AnalyticsPage } from "./pages/AnalyticsPage";
+import { CustomersPage } from "./pages/CustomersPage";
 
 const theme = createTheme({
   palette: {
@@ -68,6 +69,7 @@ export default function App() {
                 <Route path="/inventory" element={<InventoryPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/analytics" element={<AnalyticsPage />} />
+                <Route path="/customers" element={<CustomersPage />} />
 
                 {/* Admin Only Routes */}
 

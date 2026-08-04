@@ -37,6 +37,10 @@ const links = [
     label: "Analytics",
     path: "/analytics",
   },
+  {
+    label: "Customers",
+    path: "/customers",
+  },
 
   {
     label: "Categories",

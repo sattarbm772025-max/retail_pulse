@@ -13,6 +13,7 @@ from app.services.inventory_service import (
     apply_movement,
     ensure_inventory
 )
+from app.services.customer_service import record_sale_for_customer
 
 
 LOW_STOCK_THRESHOLD = 10
@@ -297,6 +298,13 @@ def create_sale(
         current_user.id,
         f"Sale Created: {sale.invoice_number} | Products: {_product_names(db, sale)}",
         commit=False
+    )
+
+    record_sale_for_customer(
+        db,
+        current_user,
+        sale,
+        sum(item.quantity for item in sale.items),
     )
 
 
