@@ -47,6 +47,7 @@ export type InventorySummary = {
 export type InventoryCharts = {
   inventory_by_category: { category: string; quantity: number }[];
   stock_status_distribution: { status: string; count: number }[];
+  movement_trend: { date: string; quantity: number }[];
 };
 
 export type StockAdjustmentPayload = {
@@ -77,4 +78,6 @@ export const inventoryApi = {
       reorder_level: reorderLevel,
       reason,
     }),
+
+  exportPDF: () => api.get("/inventory/export/pdf", { responseType: "blob" }),
 };

@@ -5,9 +5,9 @@ Revises:
 Create Date: 2026-07-15
 """
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 revision = "0001_tenant_auth"
 down_revision = None
@@ -24,58 +24,119 @@ def upgrade() -> None:
         sa.Column("email", sa.String(length=255), nullable=False, unique=True),
         sa.Column("address", sa.String(length=500)),
         sa.Column("phone", sa.String(length=20)),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
     )
     op.create_index("ix_companies_email", "companies", ["email"])
     op.create_table(
         "users",
         sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("company_id", sa.Integer(), sa.ForeignKey("companies.id", ondelete="RESTRICT"), nullable=False),
+        sa.Column(
+            "company_id",
+            sa.Integer(),
+            sa.ForeignKey("companies.id", ondelete="RESTRICT"),
+            nullable=False,
+        ),
         sa.Column("name", sa.String(length=100), nullable=False),
         sa.Column("email", sa.String(length=255), nullable=False, unique=True),
         sa.Column("password", sa.String(length=255), nullable=False),
         sa.Column("role", sa.String(length=50), nullable=False),
-        sa.Column("status", sa.String(length=20), nullable=False, server_default="ACTIVE"),
+        sa.Column(
+            "status", sa.String(length=20), nullable=False, server_default="ACTIVE"
+        ),
         sa.Column("last_login", sa.DateTime(timezone=True)),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
     )
     op.create_index("ix_users_email", "users", ["email"])
     op.create_table(
         "refresh_tokens",
         sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("user_id", sa.Integer(), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "user_id",
+            sa.Integer(),
+            sa.ForeignKey("users.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
         sa.Column("token_hash", sa.String(length=64), nullable=False, unique=True),
         sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
     )
     op.create_index("ix_refresh_tokens_user_id", "refresh_tokens", ["user_id"])
     op.create_index("ix_refresh_tokens_token_hash", "refresh_tokens", ["token_hash"])
     op.create_table(
         "audit_logs",
         sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("company_id", sa.Integer(), sa.ForeignKey("companies.id"), nullable=False),
+        sa.Column(
+            "company_id", sa.Integer(), sa.ForeignKey("companies.id"), nullable=False
+        ),
         sa.Column("user_id", sa.Integer(), sa.ForeignKey("users.id"), nullable=False),
         sa.Column("action", sa.String(length=255), nullable=False),
         sa.Column("ip_address", sa.String(length=50)),
         sa.Column("browser", sa.String(length=255)),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
     )
     op.create_table(
         "categories",
         sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("company_id", sa.Integer(), sa.ForeignKey("companies.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "company_id",
+            sa.Integer(),
+            sa.ForeignKey("companies.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
         sa.Column("name", sa.String(length=100), nullable=False),
         sa.Column("description", sa.String(length=255)),
-        sa.Column("status", sa.String(length=20), nullable=False, server_default="ACTIVE"),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "status", sa.String(length=20), nullable=False, server_default="ACTIVE"
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.UniqueConstraint("company_id", "name", name="uq_category_company_name"),
     )
     op.create_table(
         "products",
         sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("company_id", sa.Integer(), sa.ForeignKey("companies.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("category_id", sa.Integer(), sa.ForeignKey("categories.id", ondelete="RESTRICT"), nullable=False),
+        sa.Column(
+            "company_id",
+            sa.Integer(),
+            sa.ForeignKey("companies.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
+        sa.Column(
+            "category_id",
+            sa.Integer(),
+            sa.ForeignKey("categories.id", ondelete="RESTRICT"),
+            nullable=False,
+        ),
         sa.Column("name", sa.String(length=200), nullable=False),
         sa.Column("sku", sa.String(length=100), nullable=False),
         sa.Column("brand", sa.String(length=100)),
@@ -83,12 +144,31 @@ def upgrade() -> None:
         sa.Column("unit_price", sa.Float(), nullable=False),
         sa.Column("cost_price", sa.Float(), nullable=False),
         sa.Column("stock_quantity", sa.Integer(), nullable=False, server_default="0"),
-        sa.Column("unit_of_measure", sa.String(length=50), nullable=False, server_default="Unit"),
-        sa.Column("status", sa.String(length=20), nullable=False, server_default="ACTIVE"),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "unit_of_measure",
+            sa.String(length=50),
+            nullable=False,
+            server_default="Unit",
+        ),
+        sa.Column(
+            "status", sa.String(length=20), nullable=False, server_default="ACTIVE"
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.UniqueConstraint("company_id", "sku", name="uq_product_company_sku"),
-        sa.UniqueConstraint("company_id", "category_id", "name", name="uq_product_company_category_name"),
+        sa.UniqueConstraint(
+            "company_id", "category_id", "name", name="uq_product_company_category_name"
+        ),
     )
 
 

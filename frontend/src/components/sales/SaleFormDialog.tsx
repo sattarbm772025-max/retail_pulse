@@ -14,6 +14,7 @@ import {
 } from "@mui/material";
 
 import { type Product } from "../../api/catalogApi";
+import { type Customer } from "../../api/customerApi";
 import { type SaleItem, type SalePayload } from "../../api/salesApi";
 import { FormField } from "./FormField";
 import { SaleLine } from "./SaleLine";
@@ -24,6 +25,7 @@ interface SaleFormDialogProps {
   form: SalePayload;
   setForm: React.Dispatch<React.SetStateAction<SalePayload>>;
   products: Product[];
+  customers: Customer[];
   error: string;
   saving: boolean;
   submit: () => void;
@@ -44,6 +46,7 @@ export function SaleFormDialog({
   form,
   setForm,
   products,
+  customers,
   error,
   saving,
   submit,
@@ -81,16 +84,20 @@ export function SaleFormDialog({
             </Grid>
           )}
 
-          <FormField
-            label="Customer Name"
-            value={form.customer_name}
-            onChange={(value) =>
-              setForm((prev) => ({
-                ...prev,
-                customer_name: value,
-              }))
-            }
-          />
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <FormControl fullWidth>
+              <InputLabel>Customer</InputLabel>
+              <Select
+                label="Customer"
+                value={form.customer_id || ""}
+                onChange={(event) => setForm((prev) => ({ ...prev, customer_id: Number(event.target.value) }))}
+              >
+                {customers.filter((customer) => customer.status === "ACTIVE").map((customer) => (
+                  <MenuItem key={customer.id} value={customer.id}>{customer.name} · {customer.email}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
 
           <FormField
             label="Sale Date & Time"
@@ -131,6 +138,19 @@ export function SaleFormDialog({
               </Select>
             </FormControl>
           </Grid>
+
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <FormControl fullWidth>
+              <InputLabel>Payment Status</InputLabel>
+              <Select label="Payment Status" value={form.payment_status} onChange={(e) => setForm((prev) => ({ ...prev, payment_status: e.target.value as SalePayload["payment_status"] }))}>
+                <MenuItem value="PAID">Paid</MenuItem>
+                <MenuItem value="PENDING">Pending</MenuItem>
+                <MenuItem value="PARTIAL">Partial</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <FormField label="Notes" value={form.notes ?? ""} onChange={(value) => setForm((prev) => ({ ...prev, notes: value }))} />
 
           <Grid
             size={{
@@ -208,7 +228,7 @@ export function SaleFormDialog({
         <Button
           variant="contained"
           disabled={
-            !form.customer_name ||
+            !form.customer_id ||
             form.items.some((item) => !item.product_id || item.quantity < 1) ||
             saving
           }

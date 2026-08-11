@@ -4,6 +4,7 @@ import { Box, Button, Stack, Typography } from "@mui/material";
 
 import { DashboardLayout } from "../layouts/DashboardLayout";
 import { catalogApi, type Product } from "../api/catalogApi";
+import { customerApi } from "../api/customerApi";
 import {
   salesApi,
   type Sale,
@@ -26,10 +27,12 @@ const newLine = (): SaleItem => ({
 });
 
 const blankSale = (): SalePayload => ({
-  customer_name: "",
+  customer_id: 0,
   sale_date: new Date().toISOString().slice(0, 16),
   sales_channel: "RETAIL_STORE",
   payment_method: "CASH",
+  payment_status: "PAID",
+  notes: "",
   items: [newLine()],
 });
 
@@ -86,6 +89,11 @@ export function SalesPage() {
   const categories = useQuery({
     queryKey: ["sale-categories"],
     queryFn: () => catalogApi.categories().then((response) => response.data),
+  });
+
+  const customers = useQuery({
+    queryKey: ["sale-customers"],
+    queryFn: () => customerApi.list({ status: "ACTIVE" }).then((response) => response.data),
   });
 
   const sales = useQuery({
@@ -160,10 +168,12 @@ export function SalesPage() {
     setForm(
       sale
         ? {
-            customer_name: sale.customer_name,
+            customer_id: sale.customer_id ?? 0,
             sale_date: sale.sale_date.slice(0, 16),
             sales_channel: sale.sales_channel,
             payment_method: sale.payment_method,
+            payment_status: sale.payment_status,
+            notes: sale.notes ?? "",
             items: sale.items.map((item) => ({
               product_id: item.product_id,
               quantity: item.quantity,
@@ -236,6 +246,7 @@ export function SalesPage() {
         form={form}
         setForm={setForm}
         products={(products.data ?? []) as Product[]}
+        customers={customers.data ?? []}
         error={error}
         saving={save.isPending}
         submit={() => save.mutate()}

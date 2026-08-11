@@ -27,6 +27,8 @@ import {
 } from "@mui/material";
 import { analyticsApi } from "../api/analyticsApi";
 import { DashboardLayout } from "../layouts/DashboardLayout";
+import KpiCards from "../components/analytics/KpiCards";
+import { downloadPdf } from "../utils/download";
 
 const money = (value: number) =>
   new Intl.NumberFormat("en-IN", {
@@ -64,6 +66,8 @@ export function AnalyticsPage() {
     link.click();
     URL.revokeObjectURL(url);
   };
+  const downloadPDF = () =>
+    downloadPdf(analyticsApi.exportPDF, "analytics-report.pdf");
   return (
     <DashboardLayout>
       <Stack
@@ -84,7 +88,9 @@ export function AnalyticsPage() {
           <Button variant="contained" onClick={exportCsv}>
             Export CSV
           </Button>
-          <Button onClick={() => window.print()}>Export PDF</Button>
+          <Button variant="contained" onClick={downloadPDF}>
+            Download PDF
+          </Button>
         </Stack>
       </Stack>
       <Stack direction={{ xs: "column", md: "row" }} spacing={1} mb={3}>
@@ -137,26 +143,41 @@ export function AnalyticsPage() {
       </Stack>
       <Grid container spacing={2} mb={3}>
         {[
-          ["Total Revenue", money(data?.kpis.total_revenue ?? 0)],
-          ["Total Orders", data?.kpis.total_orders ?? 0],
-          ["Products Sold", data?.kpis.products_sold ?? 0],
-          ["Average Order", money(data?.kpis.average_order_value ?? 0)],
-          ["Inventory Value", money(data?.kpis.inventory_value ?? 0)],
-          ["Low Stock", data?.kpis.low_stock_products ?? 0],
-          ["Out of Stock", data?.kpis.out_of_stock_products ?? 0],
-          ["Categories", data?.kpis.total_categories ?? 0],
-        ].map(([name, value]) => (
+          [
+            "Total Revenue",
+            money(data?.kpis.total_revenue ?? 0),
+            "/analytics/sales",
+          ],
+          ["Total Orders", data?.kpis.total_orders ?? 0, "/analytics/sales"],
+          [
+            "Products Sold",
+            data?.kpis.products_sold ?? 0,
+            "/analytics/products",
+          ],
+          [
+            "Average Order",
+            money(data?.kpis.average_order_value ?? 0),
+            "/analytics/sales",
+          ],
+          [
+            "Inventory Value",
+            money(data?.kpis.inventory_value ?? 0),
+            "/inventory",
+          ],
+          ["Low Stock", data?.kpis.low_stock_products ?? 0, "/inventory"],
+          ["Out of Stock", data?.kpis.out_of_stock_products ?? 0, "/inventory"],
+          [
+            "Categories",
+            data?.kpis.total_categories ?? 0,
+            "/analytics/categories",
+          ],
+        ].map(([name, value, route]) => (
           <Grid key={String(name)} size={{ xs: 6, md: 3 }}>
-            <Card variant="outlined">
-              <CardContent>
-                <Typography variant="body2" color="text.secondary">
-                  {name}
-                </Typography>
-                <Typography variant="h6" fontWeight={800}>
-                  {value}
-                </Typography>
-              </CardContent>
-            </Card>
+            <KpiCards
+              title={String(name)}
+              value={value as string | number}
+              route={String(route)}
+            />
           </Grid>
         ))}
       </Grid>

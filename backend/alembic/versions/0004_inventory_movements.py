@@ -3,6 +3,7 @@
 Revision ID: 0004_inventory_movements
 Revises: 0003_sales_management
 """
+
 from alembic import op
 
 revision = "0004_inventory_movements"
@@ -12,9 +13,15 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.execute("ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS entity_type VARCHAR(50)")
-    op.execute("ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS entity_name VARCHAR(255)")
-    op.execute("ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS quantity_changed INTEGER")
+    op.execute(
+        "ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS entity_type VARCHAR(50)"
+    )
+    op.execute(
+        "ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS entity_name VARCHAR(255)"
+    )
+    op.execute(
+        "ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS quantity_changed INTEGER"
+    )
     op.execute("""
         CREATE TABLE IF NOT EXISTS inventory (
           id SERIAL PRIMARY KEY, company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
@@ -35,10 +42,16 @@ def upgrade() -> None:
         )
     """)
     op.execute("ALTER TABLE inventory ADD COLUMN IF NOT EXISTS current_stock INTEGER")
-    op.execute("ALTER TABLE inventory ADD COLUMN IF NOT EXISTS reserved_stock INTEGER NOT NULL DEFAULT 0")
+    op.execute(
+        "ALTER TABLE inventory ADD COLUMN IF NOT EXISTS reserved_stock INTEGER NOT NULL DEFAULT 0"
+    )
     op.execute("ALTER TABLE inventory ADD COLUMN IF NOT EXISTS available_stock INTEGER")
-    op.execute("ALTER TABLE inventory ADD COLUMN IF NOT EXISTS stock_status VARCHAR(20) NOT NULL DEFAULT 'OUT_OF_STOCK'")
-    op.execute("ALTER TABLE inventory ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now()")
+    op.execute(
+        "ALTER TABLE inventory ADD COLUMN IF NOT EXISTS stock_status VARCHAR(20) NOT NULL DEFAULT 'OUT_OF_STOCK'"
+    )
+    op.execute(
+        "ALTER TABLE inventory ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now()"
+    )
     op.execute("""
         DO $$ BEGIN
           IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='inventory' AND column_name='quantity') THEN
@@ -48,7 +61,9 @@ def upgrade() -> None:
           END IF;
         END $$;
     """)
-    op.execute("UPDATE inventory SET stock_status=CASE WHEN available_stock=0 THEN 'OUT_OF_STOCK' WHEN available_stock<=reorder_level THEN 'LOW_STOCK' ELSE 'IN_STOCK' END")
+    op.execute(
+        "UPDATE inventory SET stock_status=CASE WHEN available_stock=0 THEN 'OUT_OF_STOCK' WHEN available_stock<=reorder_level THEN 'LOW_STOCK' ELSE 'IN_STOCK' END"
+    )
     op.execute("""
         INSERT INTO inventory (company_id, product_id, current_stock, reserved_stock, available_stock, reorder_level, stock_status, updated_at)
         SELECT p.company_id, p.id, p.stock_quantity, 0, p.stock_quantity, 10,

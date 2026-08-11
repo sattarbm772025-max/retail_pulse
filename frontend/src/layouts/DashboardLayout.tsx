@@ -15,7 +15,7 @@ import {
   Typography,
 } from "@mui/material";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useState, type ReactNode } from "react";
 
@@ -36,6 +36,10 @@ const links = [
   {
     label: "Analytics",
     path: "/analytics",
+  },
+  {
+    label: "Forecast",
+    path: "/forecast",
   },
   {
     label: "Customers",
@@ -65,6 +69,7 @@ const links = [
 
 export function DashboardLayout({ children }: { children: ReactNode }) {
   const { profile, signOut } = useAuth();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
@@ -346,14 +351,31 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
                         key={notification.id}
                         sx={{ whiteSpace: "normal", maxWidth: 360 }}
                       >
-                        <Box>
+                    <Box>
                           <Typography variant="body2">
                             {notification.message}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {new Date(notification.created_at).toLocaleString()}
-                          </Typography>
-                        </Box>
+                      <Typography variant="caption" color="text.secondary">
+                        {new Date(notification.created_at).toLocaleString()}
+                      </Typography>
+                      {!notification.is_read && (
+                        <Button
+                          size="small"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            notificationApi
+                              .markAsRead(notification.id)
+                              .then(() =>
+                                queryClient.invalidateQueries({
+                                  queryKey: ["notifications"],
+                                }),
+                              );
+                          }}
+                        >
+                          Mark as read
+                        </Button>
+                      )}
+                    </Box>
                       </MenuItem>
                     ))
                   ) : (

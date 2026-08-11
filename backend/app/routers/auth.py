@@ -3,29 +3,25 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
-
 from app.models.user import User
-
 from app.schemas.auth import (
     CompanyRegister,
-    LoginRequest,
-    RefreshRequest,
-    PasswordChangeRequest,
     ForgotPasswordRequest,
+    LoginRequest,
+    PasswordChangeRequest,
+    RefreshRequest,
     ResetPasswordRequest,
 )
-
 from app.services.auth_service import (
-    register_company,
+    change_password,
+    get_profile,
     login_user,
     logout_user,
     refresh_access_token,
-    get_profile,
-    change_password,
+    register_company,
     request_password_reset,
     reset_password,
 )
-
 
 router = APIRouter(
     prefix="/auth",
@@ -33,21 +29,17 @@ router = APIRouter(
 )
 
 
-
 # -------------------------
 # Helper Functions
 # -------------------------
+
 
 def request_metadata(request: Request) -> tuple[str, str]:
     """
     Extract client information for audit logging.
     """
 
-    ip_address = (
-        request.client.host
-        if request.client
-        else "Unknown"
-    )
+    ip_address = request.client.host if request.client else "Unknown"
 
     browser = request.headers.get(
         "user-agent",
@@ -57,10 +49,10 @@ def request_metadata(request: Request) -> tuple[str, str]:
     return ip_address, browser
 
 
-
 # -------------------------
 # Company Registration
 # -------------------------
+
 
 @router.post("/register")
 def register(
@@ -77,10 +69,10 @@ def register(
     )
 
 
-
 # -------------------------
 # Login
 # -------------------------
+
 
 @router.post("/login")
 def login(
@@ -92,9 +84,7 @@ def login(
     Authenticate user and generate JWT tokens.
     """
 
-    ip_address, browser = request_metadata(
-        request
-    )
+    ip_address, browser = request_metadata(request)
 
     return login_user(
         credentials.email,
@@ -105,10 +95,10 @@ def login(
     )
 
 
-
 # -------------------------
 # Logout
 # -------------------------
+
 
 @router.post("/logout")
 def logout(
@@ -121,9 +111,7 @@ def logout(
     Logout user and invalidate refresh token.
     """
 
-    ip_address, browser = request_metadata(
-        request
-    )
+    ip_address, browser = request_metadata(request)
 
     return logout_user(
         payload.refresh_token,
@@ -134,10 +122,10 @@ def logout(
     )
 
 
-
 # -------------------------
 # Refresh Access Token
 # -------------------------
+
 
 @router.post("/refresh")
 def refresh_token(
@@ -154,10 +142,10 @@ def refresh_token(
     )
 
 
-
 # -------------------------
 # Current User Profile
 # -------------------------
+
 
 @router.get("/me")
 def profile(
@@ -167,15 +155,13 @@ def profile(
     Return logged-in user profile.
     """
 
-    return get_profile(
-        current_user
-    )
-
+    return get_profile(current_user)
 
 
 # -------------------------
 # Change Password
 # -------------------------
+
 
 @router.post("/change-password")
 def update_password(
@@ -188,9 +174,7 @@ def update_password(
     Change current user's password.
     """
 
-    ip_address, browser = request_metadata(
-        request
-    )
+    ip_address, browser = request_metadata(request)
 
     return change_password(
         current_user,
@@ -202,10 +186,10 @@ def update_password(
     )
 
 
-
 # -------------------------
 # Forgot Password
 # -------------------------
+
 
 @router.post("/forgot-password")
 def forgot_password(
@@ -223,6 +207,8 @@ def forgot_password(
 
 
 @router.post("/reset-password")
-def complete_password_reset(payload: ResetPasswordRequest, db: Session = Depends(get_db)):
+def complete_password_reset(
+    payload: ResetPasswordRequest, db: Session = Depends(get_db)
+):
     """Complete a password reset using the short-lived reset token delivered by email."""
     return reset_password(payload.token, payload.new_password, db)

@@ -1,30 +1,24 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import jwt, JWTError
+from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
+from app.core.config import ALGORITHM, SECRET_KEY
 from app.core.database import get_db
-from app.core.config import SECRET_KEY, ALGORITHM
 from app.models.user import User
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
 def get_current_user(
-    token: str = Depends(oauth2_scheme),
-    db: Session = Depends(get_db)
+    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
 ):
     credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Invalid Token"
+        status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Token"
     )
 
     try:
-        payload = jwt.decode(
-            token,
-            SECRET_KEY,
-            algorithms=[ALGORITHM]
-        )
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
 
         user_id = payload.get("sub")
 
@@ -35,9 +29,7 @@ def get_current_user(
         raise credentials_exception
 
     user = (
-        db.query(User)
-        .filter(User.id == int(user_id), User.status == "ACTIVE")
-        .first()
+        db.query(User).filter(User.id == int(user_id), User.status == "ACTIVE").first()
     )
 
     if not user:
@@ -52,7 +44,7 @@ def require_role(*allowed_roles):
         if current_user.role not in allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="You do not have permission to perform this action."
+                detail="You do not have permission to perform this action.",
             )
 
         return current_user

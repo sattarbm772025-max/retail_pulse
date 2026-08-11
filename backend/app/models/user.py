@@ -1,10 +1,4 @@
-from sqlalchemy import (
-    Column,
-    DateTime,
-    ForeignKey,
-    Integer,
-    String,
-)
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -26,13 +20,11 @@ class User(Base):
 
     __tablename__ = "users"
 
-
     id = Column(
         Integer,
         primary_key=True,
         index=True,
     )
-
 
     company_id = Column(
         Integer,
@@ -44,12 +36,10 @@ class User(Base):
         index=True,
     )
 
-
     name = Column(
         String(100),
         nullable=False,
     )
-
 
     email = Column(
         String(255),
@@ -58,12 +48,10 @@ class User(Base):
         index=True,
     )
 
-
     password = Column(
         String(255),
         nullable=False,
     )
-
 
     role = Column(
         String(50),
@@ -71,26 +59,22 @@ class User(Base):
         default="VIEWER",
     )
 
-
     status = Column(
         String(20),
         nullable=False,
         default="ACTIVE",
     )
 
-
     last_login = Column(
         DateTime(timezone=True),
         nullable=True,
     )
-
 
     created_at = Column(
         DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
     )
-
 
     # Relationship
 

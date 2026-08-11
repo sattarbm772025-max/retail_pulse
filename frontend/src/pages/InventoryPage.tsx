@@ -34,6 +34,10 @@ import {
 } from "../api/inventoryApi";
 import { useAuth } from "../context/AuthContext";
 import { DashboardLayout } from "../layouts/DashboardLayout";
+import { InventoryStockChart } from "../components/inventory/InventoryStockChart";
+import { InventoryStatusPie } from "../components/inventory/InventoryStatusPie";
+import { InventoryMovementChart } from "../components/inventory/InventoryMovementChart";
+import { InventoryCategoryChart } from "../components/inventory/InventoryCategoryChart";
 
 const pageSize = 10;
 const label = (value: string) => value.replaceAll("_", " ");
@@ -180,6 +184,61 @@ export function InventoryPage() {
             title="Stock status distribution"
             data={charts.data?.stock_status_distribution ?? []}
           />
+        </Grid>
+      </Grid>
+      <Grid container spacing={2}>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6">Stock by Product</Typography>
+
+              <InventoryStockChart
+                data={(inventory.data?.items ?? []).map((item) => ({
+                  product: item.product_name,
+                  stock: item.available_stock,
+                }))}
+              />
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6">Stock Status</Typography>
+
+              <InventoryStatusPie
+                data={(charts.data?.stock_status_distribution ?? []).map(
+                  (item) => ({ name: item.status, value: item.count }),
+                )}
+              />
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6">Inventory Movement</Typography>
+
+              <InventoryMovementChart data={charts.data?.movement_trend ?? []} />
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6">Stock by Category</Typography>
+
+              <InventoryCategoryChart
+                data={(charts.data?.inventory_by_category ?? []).map((item) => ({
+                  category: item.category,
+                  stock: item.quantity,
+                }))}
+              />
+            </CardContent>
+          </Card>
         </Grid>
       </Grid>
       <Card variant="outlined">

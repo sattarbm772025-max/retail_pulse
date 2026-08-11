@@ -127,7 +127,6 @@ class Product(Base):
         onupdate=func.now(),
     )
 
-
     # Relationships
 
     company = relationship(

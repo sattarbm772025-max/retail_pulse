@@ -12,17 +12,20 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
-    "@hookform/resolvers": "^5.2.2",
-    "@mui/icons-material": "^7.3.5",
-    "@mui/material": "^7.3.5",
-    "@tanstack/react-query": "^5.90.21",
-    "axios": "^1.13.6",
+    "@hookform/resolvers": "^5.7.1",
+    "@mui/icons-material": "^7.3.11",
+    "@mui/material": "^7.3.11",
+    "@tanstack/react-query": "^5.101.4",
+    "axios": "^1.19.0",
+    "dayjs": "^1.11.21",
+    "file-saver": "^2.0.5",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "react-hook-form": "^7.71.2",
-    "react-router-dom": "^7.13.1",
+    "react-hook-form": "^7.84.0",
+    "react-icons": "^5.7.0",
+    "react-router-dom": "^7.18.2",
     "recharts": "^3.10.1",
-    "zod": "^4.3.6"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -34,6 +37,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.3",
     "globals": "^17.7.0",
+    "prettier": "^3.9.6",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.9.3",
     "vite": "^8.1.1"

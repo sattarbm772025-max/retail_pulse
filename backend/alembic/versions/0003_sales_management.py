@@ -3,6 +3,7 @@
 Revision ID: 0003_sales_management
 Revises: 0002_catalog_schema
 """
+
 from alembic import op
 
 revision = "0003_sales_management"

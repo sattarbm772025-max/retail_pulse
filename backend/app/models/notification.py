@@ -1,10 +1,4 @@
-from sqlalchemy import (
-    Column,
-    DateTime,
-    ForeignKey,
-    Integer,
-    String,
-)
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.sql import func
 
 from app.core.database import Base
@@ -57,6 +51,12 @@ class Notification(Base):
         String(20),
         nullable=False,
         default="INFO",
+    )
+
+    is_read = Column(
+        Integer,
+        nullable=False,
+        default=0,
     )
 
     created_at = Column(

@@ -28,14 +28,11 @@ export type AnalyticsDashboard = {
 
 export const analyticsApi = {
   dashboard: (params: Record<string, string | undefined>) => {
-    // Remove empty or undefined query parameters
     const filteredParams = Object.fromEntries(
       Object.entries(params).filter(
         ([, value]) =>
-          value !== undefined &&
-          value !== null &&
-          value.trim() !== ""
-      )
+          value !== undefined && value !== null && value.trim() !== "",
+      ),
     );
 
     return api.get<AnalyticsDashboard>("/analytics/dashboard", {
@@ -43,5 +40,16 @@ export const analyticsApi = {
     });
   },
 
+  productAnalytics: () => api.get("/analytics/products"),
+
+  productDetails: (id: number) => api.get(`/analytics/products/${id}`),
+
+  categoryDetails: (id: number) => api.get(`/analytics/category/${id}`),
+
   recordExport: () => api.post("/analytics/dashboard/export"),
+
+  exportPDF: () =>
+    api.get("/analytics/export/pdf", {
+      responseType: "blob",
+    }),
 };

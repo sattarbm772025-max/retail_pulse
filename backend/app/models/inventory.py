@@ -1,11 +1,4 @@
-from sqlalchemy import (
-    Column,
-    DateTime,
-    ForeignKey,
-    Integer,
-    String,
-    UniqueConstraint,
-)
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -85,11 +78,8 @@ class Inventory(Base):
         onupdate=func.now(),
     )
 
-
     # Relationships
-    product = relationship(
-        "Product"
-    )
+    product = relationship("Product")
 
     movements = relationship(
         "InventoryMovement",
@@ -98,10 +88,8 @@ class Inventory(Base):
     )
 
 
-
 class InventoryMovement(Base):
     __tablename__ = "inventory_movements"
-
 
     id = Column(
         Integer,
@@ -150,9 +138,7 @@ class InventoryMovement(Base):
 
     performed_by = Column(
         Integer,
-        ForeignKey(
-            "users.id"
-        ),
+        ForeignKey("users.id"),
         nullable=False,
     )
 
@@ -161,7 +147,6 @@ class InventoryMovement(Base):
         nullable=False,
         server_default=func.now(),
     )
-
 
     # Relationship
     inventory = relationship(

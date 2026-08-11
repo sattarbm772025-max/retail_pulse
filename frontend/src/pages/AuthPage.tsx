@@ -9,7 +9,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useForm } from "react-hook-form";
-import { Link as RouterLink, useNavigate } from "react-router-dom";
+import { Link as RouterLink, useNavigate, useSearchParams } from "react-router-dom";
 import { z } from "zod";
 
 import { api } from "../api/client";
@@ -194,6 +194,56 @@ export function ForgotPasswordPage() {
               Back to sign in
             </Link>
           </Typography>
+        </Stack>
+      </form>
+    </AuthLayout>
+  );
+}
+
+export function ResetPasswordPage() {
+  const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError("");
+    if (!params.get("token")) {
+      setError("This password reset link is invalid or expired.");
+      return;
+    }
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+    try {
+      const response = await api.post("/auth/reset-password", {
+        token: params.get("token"),
+        new_password: password,
+      });
+      setMessage(response.data.message);
+      window.setTimeout(() => navigate("/login"), 1200);
+    } catch (requestError: any) {
+      setError(requestError.response?.data?.detail ?? "Unable to reset password.");
+    }
+  };
+
+  return (
+    <AuthLayout title="Choose a new password" subtitle="Use a strong password with at least 8 characters.">
+      <form onSubmit={submit}>
+        <Stack spacing={2.5}>
+          {message && <Alert severity="success">{message}</Alert>}
+          {error && <Alert severity="error">{error}</Alert>}
+          <TextField label="New password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required fullWidth />
+          <TextField label="Confirm new password" type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required fullWidth />
+          <Button type="submit" variant="contained">Reset password</Button>
         </Stack>
       </form>
     </AuthLayout>

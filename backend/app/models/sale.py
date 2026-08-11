@@ -57,6 +57,13 @@ class Sale(Base):
         nullable=False,
     )
 
+    customer_id = Column(
+        Integer,
+        ForeignKey("customers.id", ondelete="RESTRICT"),
+        nullable=True,
+        index=True,
+    )
+
     sale_date = Column(
         DateTime(timezone=True),
         nullable=False,
@@ -71,6 +78,17 @@ class Sale(Base):
     payment_method = Column(
         String(30),
         nullable=False,
+    )
+
+    payment_status = Column(
+        String(20),
+        nullable=False,
+        default="PAID",
+    )
+
+    notes = Column(
+        String(1000),
+        nullable=True,
     )
 
     total_amount = Column(
@@ -97,7 +115,6 @@ class Sale(Base):
         onupdate=func.now(),
     )
 
-
     # Relationships
 
     items = relationship(
@@ -106,6 +123,7 @@ class Sale(Base):
         cascade="all, delete-orphan",
     )
 
+    customer = relationship("Customer")
 
 
 class SaleItem(Base):
@@ -175,7 +193,6 @@ class SaleItem(Base):
         Float,
         nullable=False,
     )
-
 
     # Relationships
 

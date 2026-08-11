@@ -1,4 +1,5 @@
 from datetime import datetime
+
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 
@@ -17,10 +18,12 @@ class SaleItemInput(BaseModel):
 
 
 class SaleCreate(BaseModel):
-    customer_name: str = Field(min_length=2, max_length=200)
+    customer_id: int = Field(gt=0)
     sale_date: datetime | None = None
     sales_channel: str
     payment_method: str
+    payment_status: str = "PAID"
+    notes: str | None = Field(default=None, max_length=1000)
     items: list[SaleItemInput] = Field(min_length=1)
 
     @field_validator("sales_channel")
@@ -37,6 +40,14 @@ class SaleCreate(BaseModel):
         value = value.upper().replace(" ", "_")
         if value not in {"CASH", "CARD", "UPI", "BANK_TRANSFER"}:
             raise ValueError("Invalid payment method")
+        return value
+
+    @field_validator("payment_status")
+    @classmethod
+    def payment_state(cls, value: str):
+        value = value.upper()
+        if value not in {"PAID", "PENDING", "PARTIAL"}:
+            raise ValueError("Payment status must be PAID, PENDING, or PARTIAL")
         return value
 
 

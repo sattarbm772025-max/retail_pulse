@@ -1,257 +1,267 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  Alert,
-  Button,
-  Card,
-  CardContent,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  MenuItem,
-  Select,
-  Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  TextField,
-  Typography,
-} from "@mui/material";
+import { Box, Button, Stack, Typography } from "@mui/material";
+
+import { DashboardLayout } from "../layouts/DashboardLayout";
+
 import {
   customerApi,
   type Customer,
   type CustomerPayload,
 } from "../api/customerApi";
-import { DashboardLayout } from "../layouts/DashboardLayout";
-import { useAuth } from "../context/AuthContext";
 
-const empty: CustomerPayload = {
-  full_name: "",
+import { CustomerDashboardCards } from "../components/customer/CustomerDashboardCards";
+import { CustomerCharts } from "../components/customer/CustomerCharts";
+import { CustomerTable } from "../components/customer/CustomerTable";
+import { CustomerDialog } from "../components/customer/CustomerDialog";
+import { CustomerProfile } from "../components/customer/CustomerProfile";
+import { downloadPdf } from "../utils/download";
+
+const blankCustomer: CustomerPayload = {
+  name: "",
   email: "",
   phone: "",
-  customer_type: "RETAIL",
-  status: "ACTIVE",
 };
+
+const errorMessage = (error: unknown) => {
+  const detail = (
+    error as {
+      response?: {
+        data?: {
+          detail?: unknown;
+        };
+      };
+    }
+  )?.response?.data?.detail;
+
+  if (typeof detail === "string") return detail;
+
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item: { msg?: string }) => item.msg ?? "Invalid value")
+      .join(", ");
+  }
+
+  return "Something went wrong.";
+};
+
 export function CustomersPage() {
   const client = useQueryClient();
-  const { profile } = useAuth();
-  const admin = ["SUPER_ADMIN", "COMPANY_ADMIN"].includes(profile?.role ?? "");
-  const [search, setSearch] = useState("");
-  const [type, setType] = useState("");
+
   const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState<Customer | null>(null);
-  const [form, setForm] = useState(empty);
-  const [error, setError] = useState("");
+  const [profileOpen, setProfileOpen] = useState(false);
+
+  const [editing, setEditing] = useState<Customer | null>(null);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(
+    null,
+  );
+
+  const [message, setMessage] = useState("");
+
+  const [form, setForm] = useState<CustomerPayload>(blankCustomer);
+
+  const [filters, setFilters] = useState({
+    search: "",
+    status: "",
+    segment: "",
+    sort: "recent",
+  });
+
+  const downloadCsv = async () => {
+    const response = await customerApi.exportCsv();
+    const url = URL.createObjectURL(new Blob([response.data], { type: "text/csv" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "customers.csv";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const summary = useQuery({
+    queryKey: ["customer-summary"],
+    queryFn: () => customerApi.summary().then((response) => response.data),
+  });
+
   const customers = useQuery({
-    queryKey: ["customers", search, type],
+    queryKey: ["customers", filters],
     queryFn: () =>
       customerApi
         .list({
-          search,
-          customer_type: type || undefined,
-          page: 1,
-          page_size: 25,
+          search: filters.search || undefined,
+          status: filters.status || undefined,
+          segment: filters.segment || undefined,
+          sort: filters.sort,
         })
-        .then((r) => r.data),
+        .then((response) => response.data),
   });
-  const detail = useQuery({
-    queryKey: ["customer", selected?.id],
-    enabled: !!selected,
-    queryFn: () => customerApi.detail(selected!.id).then((r) => r.data),
+
+  const profile = useQuery({
+    enabled: selectedCustomerId !== null,
+    queryKey: ["customer-profile", selectedCustomerId],
+    queryFn: () =>
+      customerApi
+        .profile(selectedCustomerId!)
+        .then((response) => response.data),
   });
-  const create = useMutation({
-    mutationFn: () => customerApi.create(form),
+
+  const save = useMutation({
+    mutationFn: () =>
+      editing ? customerApi.update(editing.id, form) : customerApi.create(form),
+
     onSuccess: () => {
-      client.invalidateQueries({ queryKey: ["customers"] });
+      client.invalidateQueries({
+        queryKey: ["customers"],
+      });
+
+      client.invalidateQueries({
+        queryKey: ["customer-summary"],
+      });
+
       setOpen(false);
+      setEditing(null);
+      setForm(blankCustomer);
+      setMessage("");
     },
-    onError: (e: any) =>
-      setError(e.response?.data?.detail ?? "Unable to create customer"),
+
+    onError: (error) => {
+      setMessage(errorMessage(error));
+    },
   });
+
+  const remove = useMutation({
+    mutationFn: (id: number) => customerApi.delete(id),
+
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["customers"],
+      });
+
+      client.invalidateQueries({
+        queryKey: ["customer-summary"],
+      });
+    },
+  });
+
+  const activate = useMutation({
+    mutationFn: (id: number) => customerApi.activate(id),
+
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["customers"],
+      });
+    },
+  });
+
+  const deactivate = useMutation({
+    mutationFn: (id: number) => customerApi.deactivate(id),
+
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["customers"],
+      });
+    },
+  });
+
+  const openCreate = () => {
+    setEditing(null);
+    setForm(blankCustomer);
+    setMessage("");
+    setOpen(true);
+  };
+
+  const openEdit = (customer: Customer) => {
+    setEditing(customer);
+
+    setForm({
+      name: customer.name,
+      email: customer.email,
+      phone: customer.phone,
+    });
+
+    setMessage("");
+    setOpen(true);
+  };
+
+  const openProfile = (id: number) => {
+    setSelectedCustomerId(id);
+    setProfileOpen(true);
+  };
+
   return (
     <DashboardLayout>
       <Stack
         direction={{ xs: "column", md: "row" }}
         justifyContent="space-between"
-        mb={2}
+        spacing={2}
+        mb={3}
       >
-        <BoxTitle />
-        <Button
-          variant="contained"
-          disabled={!admin}
-          onClick={() => {
-            setForm(empty);
-            setError("");
-            setOpen(true);
-          }}
-        >
-          Add customer
-        </Button>
+        <Box>
+          <Typography variant="h4" fontWeight={800}>
+            Customer Management
+          </Typography>
+
+          <Typography color="text.secondary">
+            Manage customers, purchase history and analytics.
+          </Typography>
+        </Box>
+
+        <Stack direction="row" spacing={1}>
+          <Button variant="outlined" onClick={downloadCsv}>Export CSV</Button>
+          <Button variant="outlined" onClick={() => downloadPdf(customerApi.exportPdf, "customers.pdf")}>Download PDF</Button>
+          <Button variant="contained" onClick={openCreate}>Add Customer</Button>
+        </Stack>
       </Stack>
-      <Card variant="outlined">
-        <CardContent>
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={1} mb={2}>
-            <TextField
-              fullWidth
-              label="Search name, ID, email, phone"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            <Select
-              displayEmpty
-              value={type}
-              onChange={(e) => setType(String(e.target.value))}
-            >
-              <MenuItem value="">All types</MenuItem>
-              <MenuItem value="RETAIL">Retail</MenuItem>
-              <MenuItem value="WHOLESALE">Wholesale</MenuItem>
-              <MenuItem value="CORPORATE">Corporate</MenuItem>
-            </Select>
-          </Stack>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Customer</TableCell>
-                <TableCell>Contact</TableCell>
-                <TableCell>Type / Segment</TableCell>
-                <TableCell>Orders</TableCell>
-                <TableCell>Revenue</TableCell>
-                <TableCell />
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {customers.data?.items.map((customer) => (
-                <TableRow key={customer.id}>
-                  <TableCell>
-                    <b>{customer.full_name}</b>
-                    <br />
-                    {customer.customer_id}
-                  </TableCell>
-                  <TableCell>
-                    {customer.email}
-                    <br />
-                    {customer.phone}
-                  </TableCell>
-                  <TableCell>
-                    {customer.customer_type} / {customer.segment}
-                  </TableCell>
-                  <TableCell>{customer.total_orders}</TableCell>
-                  <TableCell>₹{customer.total_revenue.toFixed(2)}</TableCell>
-                  <TableCell>
-                    <Button onClick={() => setSelected(customer)}>
-                      Profile
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-      <Dialog
+
+      <CustomerDashboardCards
+        summary={summary.data}
+        loading={summary.isLoading}
+      />
+
+      <CustomerCharts customers={customers.data ?? []} />
+
+      <CustomerTable
+        customers={customers.data ?? []}
+        loading={customers.isLoading}
+        filters={filters}
+        setFilters={setFilters}
+        onView={openProfile}
+        onEdit={openEdit}
+        onDelete={(id) => {
+          if (window.confirm("Delete this customer?")) {
+            remove.mutate(id);
+          }
+        }}
+        onActivate={(id) => activate.mutate(id)}
+        onDeactivate={(id) => deactivate.mutate(id)}
+      />
+
+      <CustomerDialog
         open={open}
-        onClose={() => setOpen(false)}
-        fullWidth
-        maxWidth="sm"
-      >
-        <DialogTitle>Add customer</DialogTitle>
-        <DialogContent>
-          <Stack mt={1} spacing={2}>
-            {error && <Alert severity="error">{error}</Alert>}
-            <TextField
-              required
-              label="Full name"
-              value={form.full_name}
-              onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-            />
-            <TextField
-              required
-              label="Email"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-            />
-            <TextField
-              required
-              label="Phone"
-              value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
-            />
-            <Select
-              value={form.customer_type}
-              onChange={(e) =>
-                setForm({ ...form, customer_type: String(e.target.value) })
-              }
-            >
-              <MenuItem value="RETAIL">Retail</MenuItem>
-              <MenuItem value="WHOLESALE">Wholesale</MenuItem>
-              <MenuItem value="CORPORATE">Corporate</MenuItem>
-            </Select>
-            <TextField
-              label="City"
-              value={form.city ?? ""}
-              onChange={(e) => setForm({ ...form, city: e.target.value })}
-            />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpen(false)}>Cancel</Button>
-          <Button
-            variant="contained"
-            disabled={!form.full_name || !form.email || !form.phone}
-            onClick={() => create.mutate()}
-          >
-            Create
-          </Button>
-        </DialogActions>
-      </Dialog>
-      <Dialog
-        open={!!selected}
-        onClose={() => setSelected(null)}
-        fullWidth
-        maxWidth="md"
-      >
-        <DialogTitle>{detail.data?.full_name} — customer profile</DialogTitle>
-        <DialogContent>
-          <Typography mb={2}>
-            Lifetime revenue: ₹
-            {detail.data?.total_revenue?.toFixed(2) ?? "0.00"} · Orders:{" "}
-            {detail.data?.total_orders ?? 0} · Segment: {detail.data?.segment}
-          </Typography>
-          <Typography fontWeight={700}>Recent transactions</Typography>
-          {detail.data?.recent_transactions.map((sale) => (
-            <Typography key={sale.invoice_number}>
-              {sale.invoice_number} — ₹{sale.amount} —{" "}
-              {new Date(sale.date).toLocaleDateString()}
-            </Typography>
-          ))}
-          <Typography fontWeight={700} mt={2}>
-            Activity timeline
-          </Typography>
-          {detail.data?.timeline.map((event, index) => (
-            <Typography key={`${event.action}-${index}`}>
-              {event.action}: {event.description}
-            </Typography>
-          ))}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setSelected(null)}>Close</Button>
-        </DialogActions>
-      </Dialog>
+        editing={Boolean(editing)}
+        form={form}
+        setForm={setForm}
+        error={message}
+        saving={save.isPending}
+        onClose={() => {
+          setOpen(false);
+          setEditing(null);
+          setForm(blankCustomer);
+          setMessage("");
+        }}
+        onSubmit={() => save.mutate()}
+      />
+
+      <CustomerProfile
+        open={profileOpen}
+        customer={profile.data}
+        loading={profile.isLoading}
+        onClose={() => {
+          setProfileOpen(false);
+          setSelectedCustomerId(null);
+        }}
+      />
     </DashboardLayout>
-  );
-}
-function BoxTitle() {
-  return (
-    <div>
-      <Typography variant="h4" fontWeight={800}>
-        Customers
-      </Typography>
-      <Typography color="text.secondary">
-        Manage customers, purchase history, and loyalty segments.
-      </Typography>
-    </div>
   );
 }

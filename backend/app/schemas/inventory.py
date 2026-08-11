@@ -13,7 +13,9 @@ class InventoryAdjustment(BaseModel):
     def movement_type(cls, value: str):
         value = value.upper().replace(" ", "_")
         if value not in {"STOCK_IN", "STOCK_OUT", "MANUAL_ADJUSTMENT"}:
-            raise ValueError("Adjustment type must be STOCK_IN, STOCK_OUT, or MANUAL_ADJUSTMENT")
+            raise ValueError(
+                "Adjustment type must be STOCK_IN, STOCK_OUT, or MANUAL_ADJUSTMENT"
+            )
         return value
 
     @field_validator("direction")
@@ -25,6 +27,7 @@ class InventoryAdjustment(BaseModel):
         if value not in {"INCREASE", "DECREASE"}:
             raise ValueError("Direction must be INCREASE or DECREASE")
         return value
+
 
 class ReorderLevelUpdate(BaseModel):
     reorder_level: int = Field(ge=0)

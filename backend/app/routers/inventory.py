@@ -3,12 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.dependencies import require_role
-
-from app.schemas.inventory import (
-    InventoryAdjustment,
-    ReorderLevelUpdate,
-)
-
+from app.schemas.inventory import InventoryAdjustment, ReorderLevelUpdate
 from app.services.inventory_service import (
     adjust_inventory,
     charts,
@@ -17,7 +12,6 @@ from app.services.inventory_service import (
     summary,
     update_reorder_level,
 )
-
 
 router = APIRouter(
     prefix="/inventory",
@@ -33,10 +27,10 @@ admin_role = require_role(
 inventory_viewer_role = require_role("SUPER_ADMIN", "COMPANY_ADMIN", "ANALYST")
 
 
-
 # -------------------------
 # Get Inventory List
 # -------------------------
+
 
 @router.get("/")
 def all_inventory(
@@ -47,7 +41,6 @@ def all_inventory(
     sort: str = "updated",
     page: int = 1,
     page_size: int = 10,
-
     db: Session = Depends(get_db),
     current_user=Depends(inventory_viewer_role),
 ):
@@ -75,10 +68,10 @@ def all_inventory(
     )
 
 
-
 # -------------------------
 # Inventory Summary
 # -------------------------
+
 
 @router.get("/summary")
 def get_summary(
@@ -95,10 +88,10 @@ def get_summary(
     )
 
 
-
 # -------------------------
 # Inventory Charts
 # -------------------------
+
 
 @router.get("/charts")
 def get_charts(
@@ -115,17 +108,16 @@ def get_charts(
     )
 
 
-
 # -------------------------
 # Movement History
 # -------------------------
+
 
 @router.get("/{inventory_id}/movements")
 def history(
     inventory_id: int,
     page: int = 1,
     page_size: int = 10,
-
     db: Session = Depends(get_db),
     current_user=Depends(inventory_viewer_role),
 ):
@@ -142,16 +134,15 @@ def history(
     )
 
 
-
 # -------------------------
 # Stock Adjustment
 # -------------------------
+
 
 @router.post("/{inventory_id}/adjust")
 def adjust(
     inventory_id: int,
     payload: InventoryAdjustment,
-
     db: Session = Depends(get_db),
     current_user=Depends(admin_role),
 ):
@@ -171,16 +162,15 @@ def adjust(
     )
 
 
-
 # -------------------------
 # Update Reorder Level
 # -------------------------
+
 
 @router.put("/{inventory_id}/reorder-level")
 def reorder(
     inventory_id: int,
     payload: ReorderLevelUpdate,
-
     db: Session = Depends(get_db),
     current_user=Depends(admin_role),
 ):

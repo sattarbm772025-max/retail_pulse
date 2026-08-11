@@ -11,7 +11,7 @@ import { AdminRoute } from "./components/AdminRoute";
 
 import { DashboardPage } from "./pages/DashboardPage";
 
-import { ForgotPasswordPage, LoginPage, RegisterPage } from "./pages/AuthPage";
+import { ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage } from "./pages/AuthPage";
 
 import { CatalogPage } from "./pages/CatalogPage";
 import { SalesPage } from "./pages/SalesPage";
@@ -19,6 +19,10 @@ import { InventoryPage } from "./pages/InventoryPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { AnalyticsPage } from "./pages/AnalyticsPage";
 import { CustomersPage } from "./pages/CustomersPage";
+import { SalesDetailPage } from "./pages/SalesDetailPage";
+import { ProductAnalyticsPage } from "./pages/ProductAnalyticsPage";
+import { CategoryAnalyticsPage } from "./pages/CategoryAnalyticsPage";
+import { ForeCastPage } from "./pages/ForeCastPage";
 
 const theme = createTheme({
   palette: {
@@ -58,6 +62,7 @@ export default function App() {
               <Route path="/register" element={<RegisterPage />} />
 
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
 
               {/* Protected Routes */}
 
@@ -68,8 +73,21 @@ export default function App() {
 
                 <Route path="/inventory" element={<InventoryPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
-                <Route path="/analytics" element={<AnalyticsPage />} />
                 <Route path="/customers" element={<CustomersPage />} />
+                <Route path="/analytics" element={<AnalyticsPage />} />
+                <Route path="/forecast" element={<ForeCastPage />} />
+
+                <Route path="/analytics/sales" element={<SalesDetailPage />} />
+
+                <Route
+                  path="/analytics/products"
+                  element={<ProductAnalyticsPage />}
+                />
+
+                <Route
+                  path="/analytics/categories"
+                  element={<CategoryAnalyticsPage />}
+                />
 
                 {/* Admin Only Routes */}
 

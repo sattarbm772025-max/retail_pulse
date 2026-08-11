@@ -16,18 +16,23 @@ export type Sale = {
   id: number;
   invoice_number: string;
   customer_name: string;
+  customer_id: number | null;
   sale_date: string;
   sales_channel: string;
   payment_method: string;
+  payment_status: "PAID" | "PENDING" | "PARTIAL";
+  notes?: string | null;
   total_amount: number;
   items: SaleItem[];
 };
 
 export type SalePayload = {
-  customer_name: string;
+  customer_id: number;
   sale_date?: string;
   sales_channel: string;
   payment_method: string;
+  payment_status: "PAID" | "PENDING" | "PARTIAL";
+  notes?: string;
   items: SaleItem[];
 };
 
@@ -54,4 +59,7 @@ export const salesApi = {
   delete: (id: number) => api.delete(`/sales/${id}`),
 
   detail: (id: number) => api.get<Sale>(`/sales/${id}`),
+
+  details: (id: number) => api.get<Sale>(`/sales/${id}`),
+  exportPDF: () => api.get("/sales/export/pdf", { responseType: "blob" }),
 };

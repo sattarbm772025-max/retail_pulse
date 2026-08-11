@@ -28,7 +28,29 @@ def list_notifications(
             "id": record.id,
             "message": record.message,
             "level": record.level,
+            "is_read": bool(record.is_read),
             "created_at": record.created_at,
         }
         for record in records
     ]
+
+
+@router.patch("/{notification_id}/read")
+def mark_as_read(
+    notification_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(notification_roles),
+):
+    record = (
+        db.query(Notification)
+        .filter(
+            Notification.id == notification_id,
+            Notification.company_id == current_user.company_id,
+        )
+        .first()
+    )
+    if not record:
+        return {"message": "Notification not found"}
+    record.is_read = 1
+    db.commit()
+    return {"message": "Notification marked as read"}

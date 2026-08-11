@@ -2,23 +2,14 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.dependencies import (
-    get_current_user,
-    require_role,
-)
-
-from app.schemas.category import (
-    CategoryCreate,
-    CategoryUpdate,
-)
-
+from app.core.dependencies import get_current_user, require_role
+from app.schemas.category import CategoryCreate, CategoryUpdate
 from app.services.category_service import (
     create_category,
+    delete_category,
     get_categories,
     update_category,
-    delete_category,
 )
-
 
 router = APIRouter(
     prefix="/categories",
@@ -26,10 +17,10 @@ router = APIRouter(
 )
 
 
-
 # -------------------------
 # Create Category
 # -------------------------
+
 
 @router.post("/")
 def create(
@@ -57,19 +48,17 @@ def create(
     )
 
 
-
 # -------------------------
 # Get Categories
 # -------------------------
+
 
 @router.get("/")
 def all_categories(
     search: str | None = None,
     status: str | None = None,
     db: Session = Depends(get_db),
-    current_user=Depends(
-        get_current_user
-    ),
+    current_user=Depends(get_current_user),
 ):
     """
     Get company categories.
@@ -87,10 +76,10 @@ def all_categories(
     )
 
 
-
 # -------------------------
 # Update Category
 # -------------------------
+
 
 @router.put("/{category_id}")
 def update(
@@ -116,10 +105,10 @@ def update(
     )
 
 
-
 # -------------------------
 # Delete Category
 # -------------------------
+
 
 @router.delete("/{category_id}")
 def delete(

@@ -1,87 +1,76 @@
 from datetime import datetime, timezone
 
 from fastapi import HTTPException
-from jose import jwt, JWTError
+from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
-from app.core.config import (
-    SECRET_KEY,
-    ALGORITHM
-)
-
+from app.core.config import ALGORITHM, SECRET_KEY
 from app.core.security import (
-    hash_password,
-    verify_password,
     create_access_token,
-    create_refresh_token,
     create_password_reset_token,
-    hash_token
+    create_refresh_token,
+    hash_password,
+    hash_token,
+    verify_password,
 )
-
-from app.models.company import Company
-from app.models.user import User
-from app.models.refresh_token import RefreshToken
 from app.models.category import Category
-
+from app.models.company import Company
+from app.models.refresh_token import RefreshToken
+from app.models.user import User
 from app.schemas.auth import CompanyRegister
-
 from app.services.audit_service import create_audit_log
-
+from app.services.email_service import send_reset_email
 
 
 # ==============================
 # Register Company
 # ==============================
 
-def register_company(
-    request: CompanyRegister,
-    db: Session
-):
-
+def register_company(request: CompanyRegister, db: Session):
     if request.password != request.confirm_password:
         raise HTTPException(
             status_code=400,
-            detail="Passwords do not match"
+            detail="Passwords do not match",
         )
 
-    company_exists = db.query(Company).filter(
-        (Company.email == request.company_email)
-        |
-        (Company.name == request.company_name)
-    ).first()
+    company_exists = (
+        db.query(Company)
+        .filter(
+            (Company.email == request.company_email)
+            | (Company.name == request.company_name)
+        )
+        .first()
+    )
 
     if company_exists:
         raise HTTPException(
             status_code=400,
-            detail="Company name or email already exists"
+            detail="Company name or email already exists",
         )
 
-
-    user_exists = db.query(User).filter(
-        User.email == request.owner_email
-    ).first()
+    user_exists = (
+        db.query(User)
+        .filter(User.email == request.owner_email)
+        .first()
+    )
 
     if user_exists:
         raise HTTPException(
             status_code=400,
-            detail="Email already registered"
+            detail="Email already registered",
         )
-
 
     company = Company(
         name=request.company_name,
         industry=request.industry,
         email=request.company_email,
         address=request.company_address,
-        phone=request.company_phone
+        phone=request.company_phone,
     )
 
-
     try:
-
         db.add(company)
         db.flush()
-
 
         admin = User(
             company_id=company.id,
@@ -89,56 +78,46 @@ def register_company(
             email=request.owner_email,
             password=hash_password(request.password),
             role="COMPANY_ADMIN",
-            status="ACTIVE"
+            status="ACTIVE",
         )
 
         db.add(admin)
         db.flush()
 
-
         default_categories = [
             "Mobile",
             "Laptop",
             "Accessories",
-            "Clothing"
+            "Clothing",
         ]
 
-
         for category in default_categories:
-
             db.add(
                 Category(
                     company_id=company.id,
                     name=category,
                     description=f"Default {category} category",
-                    status="ACTIVE"
+                    status="ACTIVE",
                 )
             )
-
 
         create_audit_log(
             db,
             company.id,
             admin.id,
             "Company Registered",
-            commit=False
+            commit=False,
         )
-
 
         db.commit()
 
-
     except Exception:
-
         db.rollback()
         raise
 
-
     return {
-        "message": "Company Registered Successfully"
+        "message": "Company Registered Successfully",
     }
-
-
 
 
 # ==============================
@@ -150,53 +129,39 @@ def login_user(
     password: str,
     db: Session,
     ip_address: str = "Unknown",
-    browser: str = "Unknown"
+    browser: str = "Unknown",
 ):
+    user = (
+        db.query(User)
+        .filter(User.email == email)
+        .first()
+    )
 
-    user = db.query(User).filter(
-        User.email == email
-    ).first()
-
-
-    if not user or not verify_password(
-        password,
-        user.password
-    ):
-
+    if not user or not verify_password(password, user.password):
         raise HTTPException(
             status_code=401,
-            detail="Invalid Email or Password"
+            detail="Invalid Email or Password",
         )
-
 
     if user.status != "ACTIVE":
-
         raise HTTPException(
             status_code=403,
-            detail="Account inactive"
+            detail="Account inactive",
         )
-
 
     access_token = create_access_token(
         {
             "sub": str(user.id),
             "company": user.company_id,
-            "role": user.role
+            "role": user.role,
         }
     )
-
 
     refresh_token = create_refresh_token(
-        {
-            "sub": str(user.id)
-        }
+        {"sub": str(user.id)}
     )
 
-
-    payload = jwt.get_unverified_claims(
-        refresh_token
-    )
-
+    payload = jwt.get_unverified_claims(refresh_token)
 
     db.add(
         RefreshToken(
@@ -204,16 +169,12 @@ def login_user(
             token_hash=hash_token(refresh_token),
             expires_at=datetime.fromtimestamp(
                 payload["exp"],
-                tz=timezone.utc
-            )
+                tz=timezone.utc,
+            ),
         )
     )
 
-
-    user.last_login = datetime.now(
-        timezone.utc
-    )
-
+    user.last_login = datetime.now(timezone.utc)
 
     create_audit_log(
         db,
@@ -222,20 +183,16 @@ def login_user(
         "User Login",
         ip_address,
         browser,
-        commit=False
+        commit=False,
     )
 
-
     db.commit()
-
 
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
-        "token_type": "bearer"
+        "token_type": "bearer",
     }
-
-
 
 
 # ==============================
@@ -247,20 +204,19 @@ def logout_user(
     db: Session,
     current_user: User,
     ip_address="Unknown",
-    browser="Unknown"
+    browser="Unknown",
 ):
-
-    token = db.query(
-        RefreshToken
-    ).filter(
-        RefreshToken.token_hash == hash_token(refresh_token),
-        RefreshToken.user_id == current_user.id
-    ).first()
-
+    token = (
+        db.query(RefreshToken)
+        .filter(
+            RefreshToken.token_hash == hash_token(refresh_token),
+            RefreshToken.user_id == current_user.id,
+        )
+        .first()
+    )
 
     if token:
         db.delete(token)
-
 
     create_audit_log(
         db,
@@ -269,18 +225,14 @@ def logout_user(
         "User Logout",
         ip_address,
         browser,
-        commit=False
+        commit=False,
     )
-
 
     db.commit()
 
-
     return {
-        "message": "Logged Out Successfully"
+        "message": "Logged Out Successfully",
     }
-
-
 
 
 # ==============================
@@ -289,48 +241,39 @@ def logout_user(
 
 def refresh_access_token(
     refresh_token: str,
-    db: Session
+    db: Session,
 ):
-
-    token = db.query(
-        RefreshToken
-    ).filter(
-        RefreshToken.token_hash == hash_token(refresh_token)
-    ).first()
-
+    token = (
+        db.query(RefreshToken)
+        .filter(
+            RefreshToken.token_hash == hash_token(refresh_token)
+        )
+        .first()
+    )
 
     if not token:
-
         raise HTTPException(
             status_code=401,
-            detail="Invalid Refresh Token"
+            detail="Invalid Refresh Token",
         )
 
-
     try:
-
         payload = jwt.decode(
             refresh_token,
             SECRET_KEY,
-            algorithms=[ALGORITHM]
+            algorithms=[ALGORITHM],
         )
 
-
         if payload.get("type") != "refresh":
-
             raise JWTError()
-
 
         user_id = payload.get("sub")
 
-
     except JWTError:
-
         raise HTTPException(
             status_code=401,
-            detail="Invalid Refresh Token"
+            detail="Invalid Refresh Token",
         )
-
 
     if token.expires_at.replace(
         tzinfo=timezone.utc
@@ -341,62 +284,70 @@ def refresh_access_token(
 
         raise HTTPException(
             status_code=401,
-            detail="Refresh token expired"
+            detail="Refresh token expired",
         )
 
-
-    user = db.query(User).filter(
-        User.id == int(user_id),
-        User.status == "ACTIVE"
-    ).first()
-
+    user = (
+        db.query(User)
+        .filter(
+            User.id == int(user_id),
+            User.status == "ACTIVE",
+        )
+        .first()
+    )
 
     if not user:
-
         raise HTTPException(
             status_code=404,
-            detail="User not found"
+            detail="User not found",
         )
-
 
     access_token = create_access_token(
         {
             "sub": str(user.id),
             "company": user.company_id,
-            "role": user.role
+            "role": user.role,
         }
     )
 
+    # Refresh token rotation
+    rotated_refresh_token = create_refresh_token(
+        {"sub": str(user.id)}
+    )
 
-    rotated_refresh_token = create_refresh_token({"sub": str(user.id)})
-    rotated_payload = jwt.get_unverified_claims(rotated_refresh_token)
+    rotated_payload = jwt.get_unverified_claims(
+        rotated_refresh_token
+    )
+
     db.delete(token)
+
     db.add(
         RefreshToken(
             user_id=user.id,
-            token_hash=hash_token(rotated_refresh_token),
-            expires_at=datetime.fromtimestamp(rotated_payload["exp"], tz=timezone.utc),
+            token_hash=hash_token(
+                rotated_refresh_token
+            ),
+            expires_at=datetime.fromtimestamp(
+                rotated_payload["exp"],
+                tz=timezone.utc,
+            ),
         )
     )
+
     db.commit()
 
     return {
         "access_token": access_token,
         "refresh_token": rotated_refresh_token,
-        "token_type": "bearer"
+        "token_type": "bearer",
     }
-
-
 
 
 # ==============================
 # Profile
 # ==============================
 
-def get_profile(
-    user: User
-):
-
+def get_profile(user: User):
     return {
         "id": user.id,
         "name": user.name,
@@ -404,13 +355,11 @@ def get_profile(
         "role": user.role,
         "company": {
             "id": user.company_id,
-            "name": user.company.name
+            "name": user.company.name,
         },
         "status": user.status,
-        "last_login": user.last_login
+        "last_login": user.last_login,
     }
-
-
 
 
 # ==============================
@@ -423,31 +372,23 @@ def change_password(
     new_password: str,
     db: Session,
     ip_address="Unknown",
-    browser="Unknown"
+    browser="Unknown",
 ):
-
     if not verify_password(
         current_password,
-        user.password
+        user.password,
     ):
-
         raise HTTPException(
             status_code=400,
-            detail="Current password incorrect"
+            detail="Current password incorrect",
         )
 
+    user.password = hash_password(new_password)
 
-    user.password = hash_password(
-        new_password
-    )
-
-
-    db.query(
-        RefreshToken
-    ).filter(
+    # Revoke existing refresh tokens
+    db.query(RefreshToken).filter(
         RefreshToken.user_id == user.id
     ).delete()
-
 
     create_audit_log(
         db,
@@ -456,18 +397,14 @@ def change_password(
         "Password Changed",
         ip_address,
         browser,
-        commit=False
+        commit=False,
     )
-
 
     db.commit()
 
-
     return {
-        "message": "Password changed successfully"
+        "message": "Password changed successfully",
     }
-
-
 
 
 # ==============================
@@ -476,32 +413,115 @@ def change_password(
 
 def request_password_reset(
     email: str,
-    db: Session
+    db: Session,
 ):
+    user = (
+        db.query(User)
+        .filter(User.email == email)
+        .first()
+    )
 
-    user = db.query(User).filter(User.email == email).first()
+    # Keep the same response whether the email exists
+    # or not to prevent account enumeration.
     if user and user.status == "ACTIVE":
-        reset_token = create_password_reset_token({"sub": str(user.id)})
-        # Integrate this value with the configured email provider in production.
-        # Do not return it in the response, which avoids account enumeration and token exposure.
-        print(f"Password reset requested for user {user.id}; token generated for email delivery.")
-    return {"message": "If an account exists for this email, password reset instructions will be sent."}
+
+        # Generate password reset token
+        reset_token = create_password_reset_token(
+            {
+                "sub": str(user.id),
+            }
+        )
+
+        # Send reset link through Resend
+        send_reset_email(
+            user.email,
+            reset_token,
+        )
+
+        create_audit_log(
+            db,
+            user.company_id,
+            user.id,
+            "Password Reset Requested",
+            commit=True,
+        )
+
+    return {
+        "message": (
+            "If an account exists for this email, "
+            "password reset instructions will be sent."
+        )
+    }
 
 
-def reset_password(token: str, new_password: str, db: Session):
+# ==============================
+# Reset Password
+# ==============================
+
+def reset_password(
+    token: str,
+    new_password: str,
+    db: Session,
+):
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(
+            token,
+            SECRET_KEY,
+            algorithms=[ALGORITHM],
+        )
+
         if payload.get("type") != "password_reset":
             raise JWTError()
-        user_id = int(payload["sub"])
-    except (JWTError, KeyError, ValueError):
-        raise HTTPException(status_code=400, detail="This password reset link is invalid or expired")
 
-    user = db.query(User).filter(User.id == user_id, User.status == "ACTIVE").first()
+        user_id = int(payload["sub"])
+
+    except (JWTError, KeyError, ValueError):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "This password reset link "
+                "is invalid or expired"
+            ),
+        )
+
+    user = (
+        db.query(User)
+        .filter(
+            User.id == user_id,
+            User.status == "ACTIVE",
+        )
+        .first()
+    )
+
     if not user:
-        raise HTTPException(status_code=400, detail="This password reset link is invalid or expired")
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "This password reset link "
+                "is invalid or expired"
+            ),
+        )
+
     user.password = hash_password(new_password)
-    db.query(RefreshToken).filter(RefreshToken.user_id == user.id).delete()
-    create_audit_log(db, user.company_id, user.id, "Password Changed", commit=False)
+
+    # Revoke all existing refresh tokens
+    db.query(RefreshToken).filter(
+        RefreshToken.user_id == user.id
+    ).delete()
+
+    create_audit_log(
+        db,
+        user.company_id,
+        user.id,
+        "Password Changed",
+        commit=False,
+    )
+
     db.commit()
-    return {"message": "Password reset successfully. Please sign in."}
+
+    return {
+        "message": (
+            "Password reset successfully. "
+            "Please sign in."
+        )
+    }

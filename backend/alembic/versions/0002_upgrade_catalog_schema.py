@@ -6,7 +6,6 @@ Revises: 0001_tenant_auth
 
 from alembic import op
 
-
 revision = "0002_catalog_schema"
 down_revision = "0001_tenant_auth"
 branch_labels = None
@@ -48,17 +47,33 @@ def upgrade() -> None:
           CONSTRAINT uq_product_company_category_name UNIQUE (company_id, category_id, name)
         )
     """)
-    op.execute("ALTER TABLE categories ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'")
-    op.execute("ALTER TABLE categories ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now()")
+    op.execute(
+        "ALTER TABLE categories ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'"
+    )
+    op.execute(
+        "ALTER TABLE categories ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now()"
+    )
     op.execute("ALTER TABLE products ADD COLUMN IF NOT EXISTS category_id INTEGER")
     op.execute("ALTER TABLE products ADD COLUMN IF NOT EXISTS brand VARCHAR(100)")
-    op.execute("ALTER TABLE products ADD COLUMN IF NOT EXISTS description VARCHAR(1000)")
-    op.execute("ALTER TABLE products ADD COLUMN IF NOT EXISTS unit_price DOUBLE PRECISION")
-    op.execute("ALTER TABLE products ADD COLUMN IF NOT EXISTS cost_price DOUBLE PRECISION")
+    op.execute(
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS description VARCHAR(1000)"
+    )
+    op.execute(
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS unit_price DOUBLE PRECISION"
+    )
+    op.execute(
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS cost_price DOUBLE PRECISION"
+    )
     op.execute("ALTER TABLE products ADD COLUMN IF NOT EXISTS stock_quantity INTEGER")
-    op.execute("ALTER TABLE products ADD COLUMN IF NOT EXISTS unit_of_measure VARCHAR(50) NOT NULL DEFAULT 'Unit'")
-    op.execute("ALTER TABLE products ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'")
-    op.execute("ALTER TABLE products ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now()")
+    op.execute(
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS unit_of_measure VARCHAR(50) NOT NULL DEFAULT 'Unit'"
+    )
+    op.execute(
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'"
+    )
+    op.execute(
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now()"
+    )
     op.execute("""
         DO $$ BEGIN
           IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='products' AND column_name='category') THEN
@@ -76,7 +91,9 @@ def upgrade() -> None:
           END IF;
         END $$;
     """)
-    op.execute("UPDATE products SET unit_price=COALESCE(unit_price, 0.01), cost_price=COALESCE(cost_price, 0), stock_quantity=COALESCE(stock_quantity, 0)")
+    op.execute(
+        "UPDATE products SET unit_price=COALESCE(unit_price, 0.01), cost_price=COALESCE(cost_price, 0), stock_quantity=COALESCE(stock_quantity, 0)"
+    )
     op.execute("""
         INSERT INTO categories (company_id, name, description, status, created_at, updated_at)
         SELECT c.id, defaults.name, 'Default catalog category', 'ACTIVE', now(), now()

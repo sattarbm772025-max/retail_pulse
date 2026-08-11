@@ -19,10 +19,10 @@ def create_audit_log(
         user_id=user_id,
         action=action,
         ip_address=ip_address,
-        browser=browser
-        , entity_type=entity_type
-        , entity_name=entity_name
-        , quantity_changed=quantity_changed
+        browser=browser,
+        entity_type=entity_type,
+        entity_name=entity_name,
+        quantity_changed=quantity_changed,
     )
 
     db.add(log)
