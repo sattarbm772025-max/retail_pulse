@@ -71,6 +71,16 @@ export function SaleFormDialog({
       sum + line.quantity * line.unit_price - line.discount + line.tax,
     0,
   );
+  const subtotal = form.items.reduce(
+    (sum, line) => sum + line.quantity * line.unit_price,
+    0,
+  );
+  const discount = form.items.reduce((sum, line) => sum + line.discount, 0);
+  const tax = form.items.reduce((sum, line) => sum + line.tax, 0);
+  const hasInvalidQuantity = form.items.some((line) => {
+    const product = products.find((item) => item.id === line.product_id);
+    return line.quantity <= 0 || line.quantity > (product?.stock_quantity ?? 0);
+  });
 
   return (
     <Dialog open={open} onClose={close} fullWidth maxWidth="md">
@@ -90,11 +100,20 @@ export function SaleFormDialog({
               <Select
                 label="Customer"
                 value={form.customer_id || ""}
-                onChange={(event) => setForm((prev) => ({ ...prev, customer_id: Number(event.target.value) }))}
+                onChange={(event) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    customer_id: Number(event.target.value),
+                  }))
+                }
               >
-                {customers.filter((customer) => customer.status === "ACTIVE").map((customer) => (
-                  <MenuItem key={customer.id} value={customer.id}>{customer.name} · {customer.email}</MenuItem>
-                ))}
+                {customers
+                  .filter((customer) => customer.status === "ACTIVE")
+                  .map((customer) => (
+                    <MenuItem key={customer.id} value={customer.id}>
+                      {customer.name} · {customer.email}
+                    </MenuItem>
+                  ))}
               </Select>
             </FormControl>
           </Grid>
@@ -142,7 +161,17 @@ export function SaleFormDialog({
           <Grid size={{ xs: 12, sm: 6 }}>
             <FormControl fullWidth>
               <InputLabel>Payment Status</InputLabel>
-              <Select label="Payment Status" value={form.payment_status} onChange={(e) => setForm((prev) => ({ ...prev, payment_status: e.target.value as SalePayload["payment_status"] }))}>
+              <Select
+                label="Payment Status"
+                value={form.payment_status}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    payment_status: e.target
+                      .value as SalePayload["payment_status"],
+                  }))
+                }
+              >
                 <MenuItem value="PAID">Paid</MenuItem>
                 <MenuItem value="PENDING">Pending</MenuItem>
                 <MenuItem value="PARTIAL">Partial</MenuItem>
@@ -150,7 +179,11 @@ export function SaleFormDialog({
             </FormControl>
           </Grid>
 
-          <FormField label="Notes" value={form.notes ?? ""} onChange={(value) => setForm((prev) => ({ ...prev, notes: value }))} />
+          <FormField
+            label="Notes"
+            value={form.notes ?? ""}
+            onChange={(value) => setForm((prev) => ({ ...prev, notes: value }))}
+          />
 
           <Grid
             size={{
@@ -217,6 +250,18 @@ export function SaleFormDialog({
           Add Another Product
         </Button>
 
+        <Stack
+          spacing={0.5}
+          sx={{ mt: 2, p: 2, bgcolor: "action.hover", borderRadius: 1 }}
+        >
+          <Typography>Subtotal: ₹{subtotal.toFixed(2)}</Typography>
+          <Typography>Discount: −₹{discount.toFixed(2)}</Typography>
+          <Typography>Tax: ₹{tax.toFixed(2)}</Typography>
+          <Typography fontWeight={800}>
+            Grand Total: ₹{total.toFixed(2)}
+          </Typography>
+        </Stack>
+
         <Alert severity="info" sx={{ mt: 2 }}>
           Final Amount: ₹{total.toFixed(2)}
         </Alert>
@@ -230,6 +275,7 @@ export function SaleFormDialog({
           disabled={
             !form.customer_id ||
             form.items.some((item) => !item.product_id || item.quantity < 1) ||
+            hasInvalidQuantity ||
             saving
           }
           onClick={submit}

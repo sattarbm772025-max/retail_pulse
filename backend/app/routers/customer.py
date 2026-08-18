@@ -13,6 +13,7 @@ from app.services.customer_service import (
     customer_detail,
     customer_summary,
     change_customer_status,
+    soft_delete_customer,
     list_customers,
     update_customer,
 )
@@ -105,8 +106,7 @@ def delete(
     db: Session = Depends(get_db),
     current_user=Depends(admin),
 ):
-    # Soft delete: retain the customer and historical transactions, but deactivate it.
-    return change_customer_status(db, current_user, customer_id, "INACTIVE", "DELETED")
+    return soft_delete_customer(db, current_user, customer_id)
 
 
 @router.get("/export/csv")

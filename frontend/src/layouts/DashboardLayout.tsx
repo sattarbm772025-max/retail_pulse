@@ -351,31 +351,31 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
                         key={notification.id}
                         sx={{ whiteSpace: "normal", maxWidth: 360 }}
                       >
-                    <Box>
+                        <Box>
                           <Typography variant="body2">
                             {notification.message}
                           </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {new Date(notification.created_at).toLocaleString()}
-                      </Typography>
-                      {!notification.is_read && (
-                        <Button
-                          size="small"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            notificationApi
-                              .markAsRead(notification.id)
-                              .then(() =>
-                                queryClient.invalidateQueries({
-                                  queryKey: ["notifications"],
-                                }),
-                              );
-                          }}
-                        >
-                          Mark as read
-                        </Button>
-                      )}
-                    </Box>
+                          <Typography variant="caption" color="text.secondary">
+                            {new Date(notification.created_at).toLocaleString()}
+                          </Typography>
+                          {!notification.is_read && (
+                            <Button
+                              size="small"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                notificationApi
+                                  .markAsRead(notification.id)
+                                  .then(() =>
+                                    queryClient.invalidateQueries({
+                                      queryKey: ["notifications"],
+                                    }),
+                                  );
+                              }}
+                            >
+                              Mark as read
+                            </Button>
+                          )}
+                        </Box>
                       </MenuItem>
                     ))
                   ) : (

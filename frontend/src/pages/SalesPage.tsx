@@ -93,7 +93,8 @@ export function SalesPage() {
 
   const customers = useQuery({
     queryKey: ["sale-customers"],
-    queryFn: () => customerApi.list({ status: "ACTIVE" }).then((response) => response.data),
+    queryFn: () =>
+      customerApi.list({ status: "ACTIVE" }).then((response) => response.data),
   });
 
   const sales = useQuery({

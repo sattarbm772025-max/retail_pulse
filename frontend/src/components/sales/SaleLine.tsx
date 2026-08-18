@@ -95,6 +95,20 @@ export function SaleLine({
             />
 
             <FormField
+              label="SKU"
+              value={product?.sku ?? "Select product"}
+              disabled
+              onChange={() => {}}
+            />
+
+            <FormField
+              label="Available Stock"
+              value={String(product?.stock_quantity ?? 0)}
+              disabled
+              onChange={() => {}}
+            />
+
+            <FormField
               label="Quantity"
               type="number"
               value={String(line.quantity)}
@@ -104,6 +118,15 @@ export function SaleLine({
                 })
               }
             />
+
+            {line.quantity > (product?.stock_quantity ?? 0) && (
+              <Grid size={12}>
+                <Typography color="error" variant="caption">
+                  Quantity cannot exceed available stock (
+                  {product?.stock_quantity ?? 0}).
+                </Typography>
+              </Grid>
+            )}
 
             <FormField
               label="Unit Price"

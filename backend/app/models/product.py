@@ -1,7 +1,7 @@
 from sqlalchemy import (
     Column,
     DateTime,
-    Float,
+    Numeric,
     ForeignKey,
     Integer,
     String,
@@ -87,12 +87,12 @@ class Product(Base):
     )
 
     unit_price = Column(
-        Float,
+        Numeric(14, 2),
         nullable=False,
     )
 
     cost_price = Column(
-        Float,
+        Numeric(14, 2),
         nullable=False,
     )
 

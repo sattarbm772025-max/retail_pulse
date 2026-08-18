@@ -1,7 +1,7 @@
 from datetime import datetime
 from io import BytesIO
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -12,10 +12,31 @@ from app.services.analytics_service import (
     dashboard,
     product_analytics,
     product_details,
+    sales_business_intelligence,
 )
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
 role = require_role("SUPER_ADMIN", "COMPANY_ADMIN", "ANALYST")
+
+
+@router.get("/sales")
+def sales_analytics(
+    from_date: datetime | None = None,
+    to_date: datetime | None = None,
+    product_id: int | None = None,
+    category_id: int | None = None,
+    customer_id: int | None = None,
+    brand: str | None = None,
+    payment_method: str | None = None,
+    interval: str = "daily",
+    db: Session = Depends(get_db),
+    current_user=Depends(role),
+):
+    if interval not in {"daily", "weekly", "monthly"}:
+        raise HTTPException(status_code=422, detail="Interval must be daily, weekly, or monthly")
+    if from_date and to_date and from_date > to_date:
+        raise HTTPException(status_code=422, detail="From date cannot be after to date")
+    return sales_business_intelligence(db, current_user, locals(), interval)
 
 
 @router.get("/dashboard")

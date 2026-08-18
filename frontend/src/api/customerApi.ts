@@ -32,9 +32,15 @@ export interface CustomerProfile extends Customer {
 }
 
 export interface CustomerPayload {
-  name: string;
+  first_name: string;
+  last_name: string;
   email: string;
   phone: string;
+  address: string;
+  city: string;
+  state: string;
+  country: string;
+  postal_code: string;
 }
 
 export interface CustomerSummary {
@@ -65,10 +71,17 @@ const toCustomer = (customer: Record<string, any>): Customer => ({
   created_at: customer.created_at,
 });
 
-const toPayload = (data: CustomerPayload) => ({ full_name: data.name, email: data.email, phone: data.phone, customer_type: "RETAIL" });
+const toPayload = (data: CustomerPayload) => ({
+  ...data,
+  full_name: `${data.first_name.trim()} ${data.last_name.trim()}`,
+  customer_type: "RETAIL",
+});
 export const customerApi = {
   async list(params?: CustomerFilters) {
-    const response = await axios.get<{ items: Record<string, any>[] }>("/customers/", { params });
+    const response = await axios.get<{ items: Record<string, any>[] }>(
+      "/customers/",
+      { params },
+    );
     return { ...response, data: response.data.items.map(toCustomer) };
   },
 
@@ -78,7 +91,14 @@ export const customerApi = {
 
   async profile(id: number) {
     const response = await axios.get<Record<string, any>>(`/customers/${id}`);
-    return { ...response, data: { ...toCustomer(response.data), purchase_history: response.data.recent_transactions ?? [], timeline: response.data.timeline ?? [] } as CustomerProfile };
+    return {
+      ...response,
+      data: {
+        ...toCustomer(response.data),
+        purchase_history: response.data.recent_transactions ?? [],
+        timeline: response.data.timeline ?? [],
+      } as CustomerProfile,
+    };
   },
 
   create(data: CustomerPayload) {

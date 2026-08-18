@@ -11,7 +11,12 @@ import { AdminRoute } from "./components/AdminRoute";
 
 import { DashboardPage } from "./pages/DashboardPage";
 
-import { ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage } from "./pages/AuthPage";
+import {
+  ForgotPasswordPage,
+  LoginPage,
+  RegisterPage,
+  ResetPasswordPage,
+} from "./pages/AuthPage";
 
 import { CatalogPage } from "./pages/CatalogPage";
 import { SalesPage } from "./pages/SalesPage";
@@ -22,6 +27,7 @@ import { CustomersPage } from "./pages/CustomersPage";
 import { SalesDetailPage } from "./pages/SalesDetailPage";
 import { ProductAnalyticsPage } from "./pages/ProductAnalyticsPage";
 import { CategoryAnalyticsPage } from "./pages/CategoryAnalyticsPage";
+import { SalesAnalyticsPage } from "./pages/SalesAnalyticsPage";
 import { ForeCastPage } from "./pages/ForeCastPage";
 
 const theme = createTheme({
@@ -77,7 +83,10 @@ export default function App() {
                 <Route path="/analytics" element={<AnalyticsPage />} />
                 <Route path="/forecast" element={<ForeCastPage />} />
 
-                <Route path="/analytics/sales" element={<SalesDetailPage />} />
+                <Route
+                  path="/analytics/sales"
+                  element={<SalesAnalyticsPage />}
+                />
 
                 <Route
                   path="/analytics/products"

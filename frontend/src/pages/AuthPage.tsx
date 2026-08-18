@@ -9,7 +9,11 @@ import {
   Typography,
 } from "@mui/material";
 import { useForm } from "react-hook-form";
-import { Link as RouterLink, useNavigate, useSearchParams } from "react-router-dom";
+import {
+  Link as RouterLink,
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom";
 import { z } from "zod";
 
 import { api } from "../api/client";
@@ -231,19 +235,40 @@ export function ResetPasswordPage() {
       setMessage(response.data.message);
       window.setTimeout(() => navigate("/login"), 1200);
     } catch (requestError: any) {
-      setError(requestError.response?.data?.detail ?? "Unable to reset password.");
+      setError(
+        requestError.response?.data?.detail ?? "Unable to reset password.",
+      );
     }
   };
 
   return (
-    <AuthLayout title="Choose a new password" subtitle="Use a strong password with at least 8 characters.">
+    <AuthLayout
+      title="Choose a new password"
+      subtitle="Use a strong password with at least 8 characters."
+    >
       <form onSubmit={submit}>
         <Stack spacing={2.5}>
           {message && <Alert severity="success">{message}</Alert>}
           {error && <Alert severity="error">{error}</Alert>}
-          <TextField label="New password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required fullWidth />
-          <TextField label="Confirm new password" type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required fullWidth />
-          <Button type="submit" variant="contained">Reset password</Button>
+          <TextField
+            label="New password"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            required
+            fullWidth
+          />
+          <TextField
+            label="Confirm new password"
+            type="password"
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+            required
+            fullWidth
+          />
+          <Button type="submit" variant="contained">
+            Reset password
+          </Button>
         </Stack>
       </form>
     </AuthLayout>

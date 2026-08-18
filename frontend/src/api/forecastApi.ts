@@ -5,7 +5,12 @@ export const forecastApi = {
     return api.post("/forecasts/generate", null, { params: { period } });
   },
 
-  list(params: { period: number; category_id?: number; brand?: string; sort?: string }) {
+  list(params: {
+    period: number;
+    category_id?: number;
+    brand?: string;
+    sort?: string;
+  }) {
     return api.get<Forecast[]>("/forecasts/", { params });
   },
   exportForecastCSV() {

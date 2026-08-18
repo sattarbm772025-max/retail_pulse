@@ -18,9 +18,15 @@ import { CustomerProfile } from "../components/customer/CustomerProfile";
 import { downloadPdf } from "../utils/download";
 
 const blankCustomer: CustomerPayload = {
-  name: "",
+  first_name: "",
+  last_name: "",
   email: "",
   phone: "",
+  address: "",
+  city: "",
+  state: "",
+  country: "",
+  postal_code: "",
 };
 
 const errorMessage = (error: unknown) => {
@@ -69,7 +75,9 @@ export function CustomersPage() {
 
   const downloadCsv = async () => {
     const response = await customerApi.exportCsv();
-    const url = URL.createObjectURL(new Blob([response.data], { type: "text/csv" }));
+    const url = URL.createObjectURL(
+      new Blob([response.data], { type: "text/csv" }),
+    );
     const link = document.createElement("a");
     link.href = url;
     link.download = "customers.csv";
@@ -175,9 +183,15 @@ export function CustomersPage() {
     setEditing(customer);
 
     setForm({
-      name: customer.name,
+      first_name: customer.name.split(" ")[0] ?? "",
+      last_name: customer.name.split(" ").slice(1).join(" "),
       email: customer.email,
       phone: customer.phone,
+      address: "",
+      city: "",
+      state: "",
+      country: "",
+      postal_code: "",
     });
 
     setMessage("");
@@ -208,9 +222,18 @@ export function CustomersPage() {
         </Box>
 
         <Stack direction="row" spacing={1}>
-          <Button variant="outlined" onClick={downloadCsv}>Export CSV</Button>
-          <Button variant="outlined" onClick={() => downloadPdf(customerApi.exportPdf, "customers.pdf")}>Download PDF</Button>
-          <Button variant="contained" onClick={openCreate}>Add Customer</Button>
+          <Button variant="outlined" onClick={downloadCsv}>
+            Export CSV
+          </Button>
+          <Button
+            variant="outlined"
+            onClick={() => downloadPdf(customerApi.exportPdf, "customers.pdf")}
+          >
+            Download PDF
+          </Button>
+          <Button variant="contained" onClick={openCreate}>
+            Add Customer
+          </Button>
         </Stack>
       </Stack>
 

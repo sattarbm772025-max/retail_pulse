@@ -3,6 +3,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.category import Category
+from app.models.customer import Customer
 from app.models.inventory import Inventory
 from app.models.product import Product
 from app.models.sale import Sale, SaleItem
@@ -355,3 +356,107 @@ def audit_dashboard(db: Session, user, action: str):
     create_audit_log(
         db, user.company_id, user.id, action, commit=True, entity_type="DASHBOARD"
     )
+
+
+def _filtered_sales(db: Session, user, filters: dict):
+    """Return a company-scoped sale query. Item filters use EXISTS to avoid duplicates."""
+    query = db.query(Sale).filter(Sale.company_id == user.company_id)
+    if filters.get("from_date"):
+        query = query.filter(Sale.sale_date >= filters["from_date"])
+    if filters.get("to_date"):
+        query = query.filter(Sale.sale_date <= filters["to_date"])
+    if filters.get("customer_id"):
+        query = query.filter(Sale.customer_id == filters["customer_id"])
+    if filters.get("payment_method"):
+        query = query.filter(Sale.payment_method == filters["payment_method"])
+
+    item_filters = []
+    if filters.get("product_id"):
+        item_filters.append(SaleItem.product_id == filters["product_id"])
+    if filters.get("category_id"):
+        item_filters.append(SaleItem.category_id == filters["category_id"])
+    if filters.get("brand"):
+        item_filters.append(Product.brand.ilike(f"%{filters['brand']}%"))
+    if item_filters:
+        query = query.filter(
+            db.query(SaleItem.id)
+            .join(Product, Product.id == SaleItem.product_id)
+            .filter(SaleItem.sale_id == Sale.id, *item_filters)
+            .exists()
+        )
+    return query
+
+
+def sales_business_intelligence(db: Session, user, filters: dict, interval="daily"):
+    """Aggregate Task 10 analytics in PostgreSQL, never in the frontend."""
+    sales = _filtered_sales(db, user, filters)
+    sale_ids = sales.with_entities(Sale.id).subquery()
+    items = db.query(SaleItem).filter(SaleItem.sale_id.in_(sale_ids))
+
+    total_revenue, total_orders = sales.with_entities(
+        func.coalesce(func.sum(Sale.total_amount), 0),
+        func.count(Sale.id),
+    ).one()
+    total_items, total_discount, total_tax = items.with_entities(
+        func.coalesce(func.sum(SaleItem.quantity), 0),
+        func.coalesce(func.sum(SaleItem.discount), 0),
+        func.coalesce(func.sum(SaleItem.tax), 0),
+    ).one()
+
+    buckets = {
+        "daily": func.date(Sale.sale_date),
+        "weekly": func.date_trunc("week", Sale.sale_date),
+        "monthly": func.date_trunc("month", Sale.sale_date),
+    }
+    bucket = buckets.get(interval, buckets["daily"])
+    trend_rows = sales.with_entities(
+        bucket.label("period"),
+        func.coalesce(func.sum(Sale.total_amount), 0).label("revenue"),
+        func.count(Sale.id).label("orders"),
+    ).group_by(bucket).order_by(bucket).all()
+
+    sort_column = func.sum(SaleItem.total)
+    product_rows = items.join(Product, Product.id == SaleItem.product_id).with_entities(
+        Product.id, Product.name,
+        func.sum(SaleItem.quantity).label("units_sold"),
+        func.sum(SaleItem.total).label("revenue"),
+    ).group_by(Product.id, Product.name).order_by(sort_column.desc()).limit(10).all()
+
+    customer_rows = sales.join(Customer, Customer.id == Sale.customer_id).with_entities(
+        Customer.id, Customer.full_name,
+        func.count(Sale.id).label("orders"),
+        func.sum(Sale.total_amount).label("total_spend"),
+    ).group_by(Customer.id, Customer.full_name).order_by(func.sum(Sale.total_amount).desc()).limit(10).all()
+
+    payment_rows = sales.with_entities(
+        Sale.payment_method,
+        func.count(Sale.id),
+        func.sum(Sale.total_amount),
+    ).group_by(Sale.payment_method).all()
+
+    return {
+        "summary": {
+            "total_revenue": float(total_revenue or 0),
+            "total_orders": int(total_orders or 0),
+            "average_order_value": float(total_revenue / total_orders) if total_orders else 0,
+            "total_items_sold": int(total_items or 0),
+            "total_discount": float(total_discount or 0),
+            "total_tax": float(total_tax or 0),
+        },
+        "trend": [
+            {"period": str(row.period), "revenue": float(row.revenue or 0), "orders": int(row.orders or 0)}
+            for row in trend_rows
+        ],
+        "products": [
+            {"id": row.id, "name": row.name, "units_sold": int(row.units_sold or 0), "revenue": float(row.revenue or 0)}
+            for row in product_rows
+        ],
+        "customers": [
+            {"id": row.id, "name": row.full_name, "orders": int(row.orders or 0), "total_spend": float(row.total_spend or 0), "average_order_value": float(row.total_spend / row.orders) if row.orders else 0}
+            for row in customer_rows
+        ],
+        "payment_methods": [
+            {"name": row[0], "transactions": int(row[1] or 0), "revenue": float(row[2] or 0)}
+            for row in payment_rows
+        ],
+    }

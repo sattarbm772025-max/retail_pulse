@@ -199,9 +199,13 @@ def apply_movement(
 
     product.stock_quantity = updated_quantity
 
-    product.status = (
-        "OUT_OF_STOCK" if inventory.stock_status == "OUT_OF_STOCK" else "ACTIVE"
-    )
+    # An intentionally inactive product must remain inactive after a stock addition.
+    if product.status != "INACTIVE":
+        product.status = (
+            "OUT_OF_STOCK"
+            if inventory.stock_status == "OUT_OF_STOCK"
+            else "ACTIVE"
+        )
 
     movement = InventoryMovement(
         inventory_id=inventory.id,

@@ -27,6 +27,9 @@ export type AnalyticsDashboard = {
 };
 
 export const analyticsApi = {
+  salesBusinessIntelligence: (
+    params: Record<string, string | number | undefined>,
+  ) => api.get<SalesBusinessIntelligence>("/analytics/sales", { params }),
   dashboard: (params: Record<string, string | undefined>) => {
     const filteredParams = Object.fromEntries(
       Object.entries(params).filter(
@@ -53,3 +56,24 @@ export const analyticsApi = {
       responseType: "blob",
     }),
 };
+
+export interface SalesBusinessIntelligence {
+  summary: {
+    total_revenue: number;
+    total_orders: number;
+    average_order_value: number;
+    total_items_sold: number;
+    total_discount: number;
+    total_tax: number;
+  };
+  trend: { period: string; revenue: number; orders: number }[];
+  products: { id: number; name: string; units_sold: number; revenue: number }[];
+  customers: {
+    id: number;
+    name: string;
+    orders: number;
+    total_spend: number;
+    average_order_value: number;
+  }[];
+  payment_methods: { name: string; transactions: number; revenue: number }[];
+}

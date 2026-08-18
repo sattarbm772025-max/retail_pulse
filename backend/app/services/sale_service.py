@@ -1,14 +1,17 @@
 from datetime import datetime, timezone
 
 from fastapi import HTTPException
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, text
 from sqlalchemy.orm import joinedload
 
 from app.models.product import Product
 from app.models.customer import Customer
 from app.models.sale import Sale, SaleItem
 from app.services.audit_service import create_audit_log
-from app.services.customer_service import record_sale_for_customer
+from app.services.customer_service import (
+    recalculate_customer_summary,
+    record_sale_for_customer,
+)
 from app.services.inventory_service import apply_movement, ensure_inventory
 
 LOW_STOCK_THRESHOLD = 10
@@ -20,7 +23,9 @@ LOW_STOCK_THRESHOLD = 10
 
 
 def _invoice(db, company_id):
-
+    # PostgreSQL transaction advisory lock serializes invoice allocation per company.
+    # The database unique constraint remains the final integrity guarantee.
+    db.execute(text("SELECT pg_advisory_xact_lock(:company_id)"), {"company_id": company_id})
     year = datetime.now(timezone.utc).year
 
     prefix = f"INV-{year}-"
@@ -353,6 +358,8 @@ def update_sale(db, current_user, sale_id, request):
 
         raise HTTPException(status_code=404, detail="Sale not found")
 
+    previous_customer_id = sale.customer_id
+
     for item in sale.items:
 
         _adjust_stock(db, current_user, item, 1)
@@ -410,6 +417,10 @@ def update_sale(db, current_user, sale_id, request):
 
     sale.total_amount = total
 
+    if previous_customer_id and previous_customer_id != sale.customer_id:
+        recalculate_customer_summary(db, current_user, previous_customer_id)
+    recalculate_customer_summary(db, current_user, sale.customer_id)
+
     create_audit_log(
         db,
         current_user.company_id,
@@ -444,6 +455,7 @@ def delete_sale(db, current_user, sale_id):
         raise HTTPException(status_code=404, detail="Sale not found")
 
     invoice = sale.invoice_number
+    customer_id = sale.customer_id
 
     products = _product_names(db, sale)
 
@@ -452,6 +464,9 @@ def delete_sale(db, current_user, sale_id):
         _adjust_stock(db, current_user, item, 1)
 
     db.delete(sale)
+    db.flush()
+    if customer_id:
+        recalculate_customer_summary(db, current_user, customer_id)
 
     create_audit_log(
         db,

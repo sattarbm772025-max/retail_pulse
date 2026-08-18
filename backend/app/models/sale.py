@@ -1,7 +1,7 @@
 from sqlalchemy import (
     Column,
     DateTime,
-    Float,
+    Numeric,
     ForeignKey,
     Integer,
     String,
@@ -92,7 +92,7 @@ class Sale(Base):
     )
 
     total_amount = Column(
-        Float,
+        Numeric(14, 2),
         nullable=False,
     )
 
@@ -173,24 +173,24 @@ class SaleItem(Base):
     )
 
     unit_price = Column(
-        Float,
+        Numeric(14, 2),
         nullable=False,
     )
 
     discount = Column(
-        Float,
+        Numeric(14, 2),
         nullable=False,
         default=0,
     )
 
     tax = Column(
-        Float,
+        Numeric(14, 2),
         nullable=False,
         default=0,
     )
 
     total = Column(
-        Float,
+        Numeric(14, 2),
         nullable=False,
     )
 

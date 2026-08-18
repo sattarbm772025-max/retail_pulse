@@ -221,7 +221,9 @@ export function InventoryPage() {
             <CardContent>
               <Typography variant="h6">Inventory Movement</Typography>
 
-              <InventoryMovementChart data={charts.data?.movement_trend ?? []} />
+              <InventoryMovementChart
+                data={charts.data?.movement_trend ?? []}
+              />
             </CardContent>
           </Card>
         </Grid>
@@ -232,10 +234,12 @@ export function InventoryPage() {
               <Typography variant="h6">Stock by Category</Typography>
 
               <InventoryCategoryChart
-                data={(charts.data?.inventory_by_category ?? []).map((item) => ({
-                  category: item.category,
-                  stock: item.quantity,
-                }))}
+                data={(charts.data?.inventory_by_category ?? []).map(
+                  (item) => ({
+                    category: item.category,
+                    stock: item.quantity,
+                  }),
+                )}
               />
             </CardContent>
           </Card>
