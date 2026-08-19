@@ -21,10 +21,10 @@ from app.schemas.auth import CompanyRegister
 from app.services.audit_service import create_audit_log
 from app.services.email_service import send_reset_email
 
-
 # ==============================
 # Register Company
 # ==============================
+
 
 def register_company(request: CompanyRegister, db: Session):
     if request.password != request.confirm_password:
@@ -48,11 +48,7 @@ def register_company(request: CompanyRegister, db: Session):
             detail="Company name or email already exists",
         )
 
-    user_exists = (
-        db.query(User)
-        .filter(User.email == request.owner_email)
-        .first()
-    )
+    user_exists = db.query(User).filter(User.email == request.owner_email).first()
 
     if user_exists:
         raise HTTPException(
@@ -124,6 +120,7 @@ def register_company(request: CompanyRegister, db: Session):
 # Login User
 # ==============================
 
+
 def login_user(
     email: str,
     password: str,
@@ -131,11 +128,7 @@ def login_user(
     ip_address: str = "Unknown",
     browser: str = "Unknown",
 ):
-    user = (
-        db.query(User)
-        .filter(User.email == email)
-        .first()
-    )
+    user = db.query(User).filter(User.email == email).first()
 
     if not user or not verify_password(password, user.password):
         raise HTTPException(
@@ -157,9 +150,7 @@ def login_user(
         }
     )
 
-    refresh_token = create_refresh_token(
-        {"sub": str(user.id)}
-    )
+    refresh_token = create_refresh_token({"sub": str(user.id)})
 
     payload = jwt.get_unverified_claims(refresh_token)
 
@@ -198,6 +189,7 @@ def login_user(
 # ==============================
 # Logout User
 # ==============================
+
 
 def logout_user(
     refresh_token: str,
@@ -239,15 +231,14 @@ def logout_user(
 # Refresh Token
 # ==============================
 
+
 def refresh_access_token(
     refresh_token: str,
     db: Session,
 ):
     token = (
         db.query(RefreshToken)
-        .filter(
-            RefreshToken.token_hash == hash_token(refresh_token)
-        )
+        .filter(RefreshToken.token_hash == hash_token(refresh_token))
         .first()
     )
 
@@ -275,9 +266,7 @@ def refresh_access_token(
             detail="Invalid Refresh Token",
         )
 
-    if token.expires_at.replace(
-        tzinfo=timezone.utc
-    ) < datetime.now(timezone.utc):
+    if token.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
 
         db.delete(token)
         db.commit()
@@ -311,22 +300,16 @@ def refresh_access_token(
     )
 
     # Refresh token rotation
-    rotated_refresh_token = create_refresh_token(
-        {"sub": str(user.id)}
-    )
+    rotated_refresh_token = create_refresh_token({"sub": str(user.id)})
 
-    rotated_payload = jwt.get_unverified_claims(
-        rotated_refresh_token
-    )
+    rotated_payload = jwt.get_unverified_claims(rotated_refresh_token)
 
     db.delete(token)
 
     db.add(
         RefreshToken(
             user_id=user.id,
-            token_hash=hash_token(
-                rotated_refresh_token
-            ),
+            token_hash=hash_token(rotated_refresh_token),
             expires_at=datetime.fromtimestamp(
                 rotated_payload["exp"],
                 tz=timezone.utc,
@@ -347,6 +330,7 @@ def refresh_access_token(
 # Profile
 # ==============================
 
+
 def get_profile(user: User):
     return {
         "id": user.id,
@@ -365,6 +349,7 @@ def get_profile(user: User):
 # ==============================
 # Change Password
 # ==============================
+
 
 def change_password(
     user: User,
@@ -386,9 +371,7 @@ def change_password(
     user.password = hash_password(new_password)
 
     # Revoke existing refresh tokens
-    db.query(RefreshToken).filter(
-        RefreshToken.user_id == user.id
-    ).delete()
+    db.query(RefreshToken).filter(RefreshToken.user_id == user.id).delete()
 
     create_audit_log(
         db,
@@ -411,15 +394,12 @@ def change_password(
 # Forgot Password
 # ==============================
 
+
 def request_password_reset(
     email: str,
     db: Session,
 ):
-    user = (
-        db.query(User)
-        .filter(User.email == email)
-        .first()
-    )
+    user = db.query(User).filter(User.email == email).first()
 
     # Keep the same response whether the email exists
     # or not to prevent account enumeration.
@@ -458,6 +438,7 @@ def request_password_reset(
 # Reset Password
 # ==============================
 
+
 def reset_password(
     token: str,
     new_password: str,
@@ -478,10 +459,7 @@ def reset_password(
     except (JWTError, KeyError, ValueError):
         raise HTTPException(
             status_code=400,
-            detail=(
-                "This password reset link "
-                "is invalid or expired"
-            ),
+            detail=("This password reset link " "is invalid or expired"),
         )
 
     user = (
@@ -496,18 +474,13 @@ def reset_password(
     if not user:
         raise HTTPException(
             status_code=400,
-            detail=(
-                "This password reset link "
-                "is invalid or expired"
-            ),
+            detail=("This password reset link " "is invalid or expired"),
         )
 
     user.password = hash_password(new_password)
 
     # Revoke all existing refresh tokens
-    db.query(RefreshToken).filter(
-        RefreshToken.user_id == user.id
-    ).delete()
+    db.query(RefreshToken).filter(RefreshToken.user_id == user.id).delete()
 
     create_audit_log(
         db,
@@ -519,9 +492,4 @@ def reset_password(
 
     db.commit()
 
-    return {
-        "message": (
-            "Password reset successfully. "
-            "Please sign in."
-        )
-    }
+    return {"message": ("Password reset successfully. " "Please sign in.")}

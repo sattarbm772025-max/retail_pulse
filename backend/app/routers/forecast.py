@@ -99,7 +99,16 @@ def export_pdf(
     buffer = build_pdf(
         "RetailPulse Demand Forecast",
         ["Product", "Stock", "Demand", "Confidence", "Recommendation"],
-        [[item["product"], item["current_stock"], item["predicted_demand"], f'{item["confidence"]:.2f}', item["recommendation"]] for item in forecasts],
+        [
+            [
+                item["product"],
+                item["current_stock"],
+                item["predicted_demand"],
+                f'{item["confidence"]:.2f}',
+                item["recommendation"],
+            ]
+            for item in forecasts
+        ],
     )
 
     return StreamingResponse(

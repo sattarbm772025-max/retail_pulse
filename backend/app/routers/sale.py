@@ -18,13 +18,14 @@ from app.services.sale_service import (
     update_sale,
 )
 
-
 router = APIRouter(prefix="/sales", tags=["Sales"])
 role = require_role("SUPER_ADMIN", "COMPANY_ADMIN", "ANALYST")
 
 
 @router.post("/")
-def create(request: SaleCreate, db: Session = Depends(get_db), current_user=Depends(role)):
+def create(
+    request: SaleCreate, db: Session = Depends(get_db), current_user=Depends(role)
+):
     return create_sale(db, current_user, request)
 
 
@@ -47,8 +48,16 @@ def all_sales(
     current_user=Depends(role),
 ):
     return get_sales(
-        db, current_user, search, date_from, date_to, category_id,
-        sales_channel, payment_method, sort, payment_status,
+        db,
+        current_user,
+        search,
+        date_from,
+        date_to,
+        category_id,
+        sales_channel,
+        payment_method,
+        sort,
+        payment_status,
     )
 
 
@@ -58,10 +67,16 @@ def export_sales_csv(db: Session = Depends(get_db), current_user=Depends(role)):
     writer = csv.writer(output)
     writer.writerow(["Invoice", "Customer", "Date", "Payment", "Status", "Amount"])
     for sale in get_sales(db, current_user):
-        writer.writerow([
-            sale["invoice_number"], sale["customer_name"], sale["sale_date"],
-            sale["payment_method"], sale["payment_status"], sale["total_amount"],
-        ])
+        writer.writerow(
+            [
+                sale["invoice_number"],
+                sale["customer_name"],
+                sale["sale_date"],
+                sale["payment_method"],
+                sale["payment_status"],
+                sale["total_amount"],
+            ]
+        )
     return StreamingResponse(
         iter([output.getvalue()]),
         media_type="text/csv",
@@ -75,13 +90,21 @@ def export_sales_pdf(db: Session = Depends(get_db), current_user=Depends(role)):
 
     rows = [
         [
-            sale["invoice_number"], sale["customer_name"], str(sale["sale_date"]),
-            sale["payment_method"], sale["payment_status"], f"{sale['total_amount']:.2f}",
+            sale["invoice_number"],
+            sale["customer_name"],
+            str(sale["sale_date"]),
+            sale["payment_method"],
+            sale["payment_status"],
+            f"{sale['total_amount']:.2f}",
         ]
         for sale in get_sales(db, current_user)
     ]
     return StreamingResponse(
-        build_pdf("RetailPulse Sales Report", ["Invoice", "Customer", "Date", "Method", "Status", "Amount"], rows),
+        build_pdf(
+            "RetailPulse Sales Report",
+            ["Invoice", "Customer", "Date", "Method", "Status", "Amount"],
+            rows,
+        ),
         media_type="application/pdf",
         headers={"Content-Disposition": "attachment; filename=sales_report.pdf"},
     )
@@ -93,7 +116,12 @@ def detail(sale_id: int, db: Session = Depends(get_db), current_user=Depends(rol
 
 
 @router.put("/{sale_id}")
-def update(sale_id: int, request: SaleUpdate, db: Session = Depends(get_db), current_user=Depends(role)):
+def update(
+    sale_id: int,
+    request: SaleUpdate,
+    db: Session = Depends(get_db),
+    current_user=Depends(role),
+):
     return update_sale(db, current_user, sale_id, request)
 
 

@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from decimal import Decimal
 
 from fastapi import HTTPException
 from sqlalchemy import func, or_, text
@@ -25,7 +26,9 @@ LOW_STOCK_THRESHOLD = 10
 def _invoice(db, company_id):
     # PostgreSQL transaction advisory lock serializes invoice allocation per company.
     # The database unique constraint remains the final integrity guarantee.
-    db.execute(text("SELECT pg_advisory_xact_lock(:company_id)"), {"company_id": company_id})
+    db.execute(
+        text("SELECT pg_advisory_xact_lock(:company_id)"), {"company_id": company_id}
+    )
     year = datetime.now(timezone.utc).year
 
     prefix = f"INV-{year}-"
@@ -169,7 +172,7 @@ def _make_sale(db, current_user, request, invoice_number=None):
         payment_method=request.payment_method,
         payment_status=request.payment_status,
         notes=request.notes,
-        total_amount=0,
+        total_amount=Decimal("0"),
         created_by=current_user.id,
     )
 
@@ -177,26 +180,25 @@ def _make_sale(db, current_user, request, invoice_number=None):
 
     db.flush()
 
-    total = 0
+    total = Decimal("0")
 
     for input_item in request.items:
 
         product = _adjust_stock(db, current_user, input_item, -1)
 
-        line_total = (
-            input_item.quantity * input_item.unit_price
-            - input_item.discount
-            + input_item.tax
-        )
+        unit_price = Decimal(str(input_item.unit_price))
+        discount = Decimal(str(input_item.discount))
+        tax = Decimal(str(input_item.tax))
+        line_total = input_item.quantity * unit_price - discount + tax
 
         sale.items.append(
             SaleItem(
                 product_id=product.id,
                 category_id=product.category_id,
                 quantity=input_item.quantity,
-                unit_price=input_item.unit_price,
-                discount=input_item.discount,
-                tax=input_item.tax,
+                unit_price=unit_price,
+                discount=discount,
+                tax=tax,
                 total=line_total,
             )
         )

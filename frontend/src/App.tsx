@@ -33,11 +33,13 @@ import { ForeCastPage } from "./pages/ForeCastPage";
 const theme = createTheme({
   palette: {
     primary: {
-      main: "#165dff",
+      main: "#2563eb",
+      dark: "#0f1e46",
     },
 
     background: {
-      default: "#f5f7fb",
+      default: "#eef0f7",
+      paper: "#ffffff",
     },
   },
 
@@ -46,7 +48,25 @@ const theme = createTheme({
   },
 
   shape: {
-    borderRadius: 10,
+    borderRadius: 14,
+  },
+  components: {
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          border: "1px solid #e5e7eb",
+          boxShadow: "0 8px 24px rgba(15, 30, 70, 0.05)",
+        },
+      },
+    },
+    MuiButton: {
+      styleOverrides: { root: { borderRadius: 10, fontWeight: 700 } },
+    },
+    MuiTableCell: {
+      styleOverrides: {
+        head: { fontWeight: 800, color: "#334155", background: "#f8fafc" },
+      },
+    },
   },
 });
 

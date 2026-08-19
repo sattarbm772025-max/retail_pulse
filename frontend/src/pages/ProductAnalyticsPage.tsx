@@ -15,27 +15,31 @@ import {
   Typography,
 } from "@mui/material";
 import {
-  ResponsiveContainer,
-  BarChart,
   Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
 } from "recharts";
 
 import { DashboardLayout } from "../layouts/DashboardLayout";
-import { analyticsApi } from "../api/analyticsApi";
+import {
+  analyticsApi,
+  type ProductAnalytics,
+} from "../api/analyticsApi";
 
-interface ProductAnalytics {
-  id: number;
-  name: string;
-  category: string;
-  brand: string;
-  units_sold: number;
-  revenue: number;
-  stock: number;
-}
+/* =========================================================
+   HELPERS
+========================================================= */
+
+const money = (value: number) =>
+  new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 2,
+  }).format(value);
 
 const errorMessage = (error: unknown): string => {
   const detail = (
@@ -52,167 +56,375 @@ const errorMessage = (error: unknown): string => {
     return detail;
   }
 
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item) => {
+        if (
+          typeof item === "object" &&
+          item !== null &&
+          "msg" in item
+        ) {
+          return String(
+            (item as { msg?: unknown }).msg ?? "Validation error",
+          );
+        }
+
+        return String(item);
+      })
+      .join(", ");
+  }
+
   return "Unable to load product analytics.";
 };
+
+/* =========================================================
+   PAGE
+========================================================= */
 
 export function ProductAnalyticsPage(): React.JSX.Element {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
 
-  const { data, isLoading, error } = useQuery<ProductAnalytics[]>({
+  const query = useQuery({
     queryKey: ["product-analytics"],
     queryFn: () =>
-      analyticsApi.productAnalytics().then((response) => response.data),
+      analyticsApi
+        .productAnalytics()
+        .then((response) => response.data),
+    staleTime: 30_000,
+    refetchInterval: 60_000,
   });
 
+  const data = query.data ?? [];
+
+  /* -------------------------------------------------------
+     FILTER PRODUCTS
+  ------------------------------------------------------- */
+
+  const categories = useMemo(() => {
+    return Array.from(
+      new Set(
+        data
+          .map((product) => product.category)
+          .filter(Boolean),
+      ),
+    ).sort();
+  }, [data]);
+
   const products = useMemo(() => {
-    if (!data) return [];
+    const searchValue = search.trim().toLowerCase();
 
-    return data.filter((item) => {
+    return data.filter((product) => {
       const matchesSearch =
-        item.name.toLowerCase().includes(search.toLowerCase()) ||
-        item.brand.toLowerCase().includes(search.toLowerCase());
+        !searchValue ||
+        product.name.toLowerCase().includes(searchValue) ||
+        product.brand.toLowerCase().includes(searchValue);
 
-      const matchesCategory = category === "" || item.category === category;
+      const matchesCategory =
+        !category || product.category === category;
 
       return matchesSearch && matchesCategory;
     });
   }, [data, search, category]);
 
-  const categories = useMemo(() => {
-    return [...new Set((data ?? []).map((p) => p.category))];
-  }, [data]);
+  /* -------------------------------------------------------
+     SUMMARY
+  ------------------------------------------------------- */
 
-  const totalRevenue = products.reduce((sum, p) => sum + p.revenue, 0);
+  const totalRevenue = useMemo(
+    () =>
+      products.reduce(
+        (sum, product) => sum + Number(product.revenue || 0),
+        0,
+      ),
+    [products],
+  );
 
-  const totalUnits = products.reduce((sum, p) => sum + p.units_sold, 0);
+  const totalUnits = useMemo(
+    () =>
+      products.reduce(
+        (sum, product) => sum + Number(product.units_sold || 0),
+        0,
+      ),
+    [products],
+  );
 
-  const totalStock = products.reduce((sum, p) => sum + p.stock, 0);
+  const totalStock = useMemo(
+    () =>
+      products.reduce(
+        (sum, product) => sum + Number(product.stock || 0),
+        0,
+      ),
+    [products],
+  );
+
+  /* =======================================================
+     RENDER
+  ======================================================= */
 
   return (
     <DashboardLayout>
-      <Typography variant="h4" fontWeight={700} mb={3}>
-        Product Analytics
-      </Typography>
+      <Stack spacing={3}>
+        {/* HEADER */}
 
-      <Grid container spacing={2} mb={3}>
-        <Grid size={{ xs: 12, md: 3 }}>
-          <Card>
-            <CardContent>
-              <Typography color="text.secondary">Products</Typography>
+        <Box>
+          <Typography variant="h4" fontWeight={800}>
+            Product Analytics
+          </Typography>
 
-              <Typography variant="h4">{products.length}</Typography>
-            </CardContent>
-          </Card>
+          <Typography color="text.secondary">
+            Analyze product sales, revenue and current inventory
+            across your company.
+          </Typography>
+        </Box>
+
+        {/* ERROR */}
+
+        {query.error && (
+          <Alert severity="error">
+            {errorMessage(query.error)}
+          </Alert>
+        )}
+
+        {/* KPI CARDS */}
+
+        <Grid container spacing={2}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card>
+              <CardContent>
+                <Typography color="text.secondary">
+                  Products
+                </Typography>
+
+                <Typography variant="h4" fontWeight={800}>
+                  {query.isLoading ? "..." : products.length}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card>
+              <CardContent>
+                <Typography color="text.secondary">
+                  Revenue
+                </Typography>
+
+                <Typography variant="h4" fontWeight={800}>
+                  {query.isLoading ? "..." : money(totalRevenue)}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card>
+              <CardContent>
+                <Typography color="text.secondary">
+                  Units Sold
+                </Typography>
+
+                <Typography variant="h4" fontWeight={800}>
+                  {query.isLoading ? "..." : totalUnits}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card>
+              <CardContent>
+                <Typography color="text.secondary">
+                  Current Stock
+                </Typography>
+
+                <Typography variant="h4" fontWeight={800}>
+                  {query.isLoading ? "..." : totalStock}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
         </Grid>
 
-        <Grid size={{ xs: 12, md: 3 }}>
-          <Card>
-            <CardContent>
-              <Typography color="text.secondary">Revenue</Typography>
+        {/* FILTERS */}
 
-              <Typography variant="h4">₹{totalRevenue.toFixed(2)}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+        <Card variant="outlined">
+          <CardContent>
+            <Stack
+              direction={{ xs: "column", md: "row" }}
+              spacing={2}
+            >
+              <TextField
+                fullWidth
+                label="Search Product / Brand"
+                value={search}
+                onChange={(event) =>
+                  setSearch(event.target.value)
+                }
+              />
 
-        <Grid size={{ xs: 12, md: 3 }}>
-          <Card>
-            <CardContent>
-              <Typography color="text.secondary">Units Sold</Typography>
+              <FormControl sx={{ minWidth: 240 }}>
+                <InputLabel>Category</InputLabel>
 
-              <Typography variant="h4">{totalUnits}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid size={{ xs: 12, md: 3 }}>
-          <Card>
-            <CardContent>
-              <Typography color="text.secondary">Current Stock</Typography>
-
-              <Typography variant="h4">{totalStock}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      <Card variant="outlined">
-        <CardContent>
-          <Stack direction={{ xs: "column", md: "row" }} spacing={2} mb={3}>
-            <TextField
-              fullWidth
-              label="Search Product / Brand"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-
-            <FormControl sx={{ minWidth: 220 }}>
-              <InputLabel>Category</InputLabel>
-
-              <Select
-                value={category}
-                label="Category"
-                onChange={(e) => setCategory(e.target.value)}
-              >
-                <MenuItem value="">All Categories</MenuItem>
-
-                {categories.map((item) => (
-                  <MenuItem key={item} value={item}>
-                    {item}
+                <Select
+                  value={category}
+                  label="Category"
+                  onChange={(event) =>
+                    setCategory(String(event.target.value))
+                  }
+                >
+                  <MenuItem value="">
+                    All Categories
                   </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Stack>
 
-          {error && <Alert severity="error">{errorMessage(error)}</Alert>}
+                  {categories.map((item) => (
+                    <MenuItem key={item} value={item}>
+                      {item}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Stack>
+          </CardContent>
+        </Card>
 
-          {isLoading ? (
-            <Typography>Loading product analytics...</Typography>
-          ) : (
-            <>
-              <Box height={350} mb={4}>
-                <ResponsiveContainer width="100%" height="100%">
+        {/* EMPTY STATE */}
+
+        {!query.isLoading &&
+          !query.error &&
+          products.length === 0 && (
+            <Alert severity="info">
+              No products found for the selected filters.
+            </Alert>
+          )}
+
+        {/* CHART */}
+
+        {products.length > 0 && (
+          <Card>
+            <CardContent>
+              <Typography
+                variant="h6"
+                fontWeight={700}
+                mb={2}
+              >
+                Product Revenue
+              </Typography>
+
+              <Box height={350}>
+                <ResponsiveContainer
+                  width="100%"
+                  height="100%"
+                >
                   <BarChart data={products}>
                     <CartesianGrid strokeDasharray="3 3" />
 
-                    <XAxis dataKey="name" />
+                    <XAxis
+                      dataKey="name"
+                      interval={0}
+                      angle={-25}
+                      textAnchor="end"
+                      height={80}
+                    />
 
                     <YAxis />
 
-                    <Tooltip />
+                    <Tooltip
+                      formatter={(value) =>
+                        money(Number(value ?? 0))
+                      }
+                    />
 
-                    <Bar dataKey="revenue" name="Revenue" />
+                    <Bar
+                      dataKey="revenue"
+                      name="Revenue"
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               </Box>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* PRODUCT LIST */}
+
+        {products.length > 0 && (
+          <Card variant="outlined">
+            <CardContent>
+              <Typography
+                variant="h6"
+                fontWeight={700}
+                mb={2}
+              >
+                Product Performance
+              </Typography>
+
               <Grid container spacing={2}>
                 {products.map((product) => (
-                  <Grid key={product.id} size={{ xs: 12 }}>
+                  <Grid
+                    key={product.id}
+                    size={{ xs: 12 }}
+                  >
                     <Card variant="outlined">
                       <CardContent>
-                        <Grid container spacing={2} alignItems="center">
-                          <Grid size={{ xs: 12, md: 3 }}>
+                        <Grid
+                          container
+                          spacing={2}
+                          alignItems="center"
+                        >
+                          {/* PRODUCT */}
+
+                          <Grid
+                            size={{
+                              xs: 12,
+                              md: 3,
+                            }}
+                          >
                             <Typography fontWeight={700}>
                               {product.name}
                             </Typography>
 
-                            <Typography variant="body2" color="text.secondary">
-                              {product.brand}
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                            >
+                              {product.brand || "No brand"}
                             </Typography>
                           </Grid>
 
-                          <Grid size={{ xs: 6, md: 2 }}>
-                            <Typography variant="body2" color="text.secondary">
+                          {/* CATEGORY */}
+
+                          <Grid
+                            size={{
+                              xs: 6,
+                              md: 2,
+                            }}
+                          >
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                            >
                               Category
                             </Typography>
 
-                            <Typography>{product.category}</Typography>
+                            <Typography>
+                              {product.category ||
+                                "Uncategorized"}
+                            </Typography>
                           </Grid>
 
-                          <Grid size={{ xs: 6, md: 2 }}>
-                            <Typography variant="body2" color="text.secondary">
+                          {/* UNITS */}
+
+                          <Grid
+                            size={{
+                              xs: 6,
+                              md: 2,
+                            }}
+                          >
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                            >
                               Units Sold
                             </Typography>
 
@@ -221,18 +433,38 @@ export function ProductAnalyticsPage(): React.JSX.Element {
                             </Typography>
                           </Grid>
 
-                          <Grid size={{ xs: 6, md: 2 }}>
-                            <Typography variant="body2" color="text.secondary">
+                          {/* REVENUE */}
+
+                          <Grid
+                            size={{
+                              xs: 6,
+                              md: 2,
+                            }}
+                          >
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                            >
                               Revenue
                             </Typography>
 
                             <Typography fontWeight={700}>
-                              ₹{product.revenue.toFixed(2)}
+                              {money(product.revenue)}
                             </Typography>
                           </Grid>
 
-                          <Grid size={{ xs: 6, md: 1.5 }}>
-                            <Typography variant="body2" color="text.secondary">
+                          {/* STOCK */}
+
+                          <Grid
+                            size={{
+                              xs: 6,
+                              md: 1.5,
+                            }}
+                          >
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                            >
                               Stock
                             </Typography>
 
@@ -241,16 +473,29 @@ export function ProductAnalyticsPage(): React.JSX.Element {
                             </Typography>
                           </Grid>
 
-                          <Grid size={{ xs: 12, md: 1.5 }}>
+                          {/* STATUS */}
+
+                          <Grid
+                            size={{
+                              xs: 12,
+                              md: 1.5,
+                            }}
+                          >
                             <Typography
+                              fontWeight={700}
                               color={
                                 product.stock > 10
                                   ? "success.main"
-                                  : "error.main"
+                                  : product.stock > 0
+                                    ? "warning.main"
+                                    : "error.main"
                               }
-                              fontWeight={700}
                             >
-                              {product.stock > 10 ? "Healthy" : "Low Stock"}
+                              {product.stock > 10
+                                ? "Healthy"
+                                : product.stock > 0
+                                  ? "Low Stock"
+                                  : "Out of Stock"}
                             </Typography>
                           </Grid>
                         </Grid>
@@ -259,10 +504,10 @@ export function ProductAnalyticsPage(): React.JSX.Element {
                   </Grid>
                 ))}
               </Grid>
-            </>
-          )}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        )}
+      </Stack>
     </DashboardLayout>
   );
 }

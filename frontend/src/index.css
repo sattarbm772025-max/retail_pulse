@@ -5,4 +5,11 @@ body,
 }
 body {
   margin: 0;
+  color: #111827;
+  background: #eef0f7;
+  font-family: Inter, Roboto, Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
 }

@@ -96,15 +96,27 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
     <Box
       sx={{
         height: "100%",
-        bgcolor: "#061a3a",
+        bgcolor: "#0b1737",
         color: "white",
-        p: 2,
+        p: 1.5,
+        borderRadius: { md: "0 20px 20px 0" },
       }}
     >
       <Stack spacing={0.5} mb={4}>
-        <Typography fontWeight={800} fontSize={20}>
-          RetailPulse
-        </Typography>
+        <Stack direction="row" alignItems="center" spacing={1}>
+          <Box
+            sx={{
+              width: 28,
+              height: 28,
+              borderRadius: "50%",
+              bgcolor: "#21b8e5",
+              boxShadow: "15px 0 0 #2563eb, 7px -8px 0 #48c7ee",
+            }}
+          />
+          <Typography fontWeight={800} fontSize={19}>
+            RetailPulse
+          </Typography>
+        </Stack>
 
         <Typography
           variant="caption"
@@ -130,11 +142,11 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
               setMobileOpen(false);
             }}
             sx={{
-              borderRadius: 2,
+              borderRadius: 2.5,
               mb: 0.5,
               minHeight: 44,
               "&.Mui-selected": {
-                bgcolor: "rgba(255,255,255,.13)",
+                bgcolor: "#1d3567",
               },
               "&:hover": {
                 bgcolor: "rgba(255,255,255,.09)",
@@ -327,7 +339,11 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
                   }}
                 >
                   <Badge
-                    badgeContent={notifications.data?.length ?? 0}
+                    badgeContent={
+                      notifications.data?.filter(
+                        (notification) => !notification.is_read,
+                      ).length ?? 0
+                    }
                     color="error"
                     max={99}
                   >

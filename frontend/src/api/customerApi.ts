@@ -3,6 +3,7 @@ import { api as axios } from "./axios";
 export interface Customer {
   id: number;
   name: string;
+  full_name?: string;
   email: string;
   phone: string;
   status: string;
@@ -61,6 +62,7 @@ export interface CustomerFilters {
 const toCustomer = (customer: Record<string, any>): Customer => ({
   id: customer.id,
   name: customer.full_name ?? customer.name,
+  full_name: customer.full_name ?? customer.name,
   email: customer.email,
   phone: customer.phone,
   status: customer.status,

@@ -19,10 +19,14 @@ def send_reset_email(email: str, token: str) -> None:
     try:
         import resend
     except ImportError as error:
-        raise RuntimeError("Resend is not installed. Run: pip install resend") from error
+        raise RuntimeError(
+            "Resend is not installed. Run: pip install resend"
+        ) from error
 
     resend.api_key = RESEND_API_KEY
-    reset_link = f"{FRONTEND_URL.rstrip('/')}/reset-password?{urlencode({'token': token})}"
+    reset_link = (
+        f"{FRONTEND_URL.rstrip('/')}/reset-password?{urlencode({'token': token})}"
+    )
     resend.Emails.send(
         {
             "from": FROM_EMAIL,

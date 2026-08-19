@@ -38,6 +38,10 @@ export function CategoryDetailsPage(): React.JSX.Element {
     );
   }
 
+  if (!data) {
+    return <DashboardLayout><Alert severity="info">Category details are not available.</Alert></DashboardLayout>;
+  }
+
   return (
     <DashboardLayout>
       <Stack spacing={3}>

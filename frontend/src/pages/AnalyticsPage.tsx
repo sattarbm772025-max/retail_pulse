@@ -26,6 +26,8 @@ import {
   Typography,
 } from "@mui/material";
 import { analyticsApi } from "../api/analyticsApi";
+import { catalogApi } from "../api/catalogApi";
+import { customerApi } from "../api/customerApi";
 import { DashboardLayout } from "../layouts/DashboardLayout";
 import KpiCards from "../components/analytics/KpiCards";
 import { downloadPdf } from "../utils/download";
@@ -38,13 +40,86 @@ const money = (value: number) =>
   }).format(value);
 
 export function AnalyticsPage() {
-  const [filters, setFilters] = useState({
-    from_date: "",
-    to_date: "",
-    brand: "",
-    channel: "",
-    payment_method: "",
-  });
+ const [datePreset, setDatePreset] = useState("custom");
+
+const [filters, setFilters] = useState({
+  from_date: "",
+  to_date: "",
+  product_id: "",
+  category_id: "",
+  customer_id: "",
+  payment_method: "",
+});
+const products = useQuery({
+  queryKey: ["analytics-products"],
+  queryFn: () =>
+    catalogApi
+      .products({
+        status: "ACTIVE",
+        sort: "name",
+      })
+      .then((response) => response.data),
+});
+
+const categories = useQuery({
+  queryKey: ["analytics-categories"],
+  queryFn: () =>
+    catalogApi.categories().then((response) => response.data),
+});
+
+const customers = useQuery({
+  queryKey: ["analytics-customers"],
+  queryFn: () =>
+    customerApi
+      .list({ status: "ACTIVE" })
+      .then((response) => response.data),
+});
+const handleDatePreset = (preset: string) => {
+  const now = new Date();
+
+  if (preset === "this_month") {
+    const firstDay = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      1,
+    );
+
+    setFilters({
+      ...filters,
+      from_date: firstDay.toISOString(),
+      to_date: now.toISOString(),
+    });
+  } else if (preset === "last_month") {
+    const firstDay = new Date(
+      now.getFullYear(),
+      now.getMonth() - 1,
+      1,
+    );
+
+    const lastDay = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      0,
+      23,
+      59,
+      59,
+    );
+
+    setFilters({
+      ...filters,
+      from_date: firstDay.toISOString(),
+      to_date: lastDay.toISOString(),
+    });
+  } else {
+    setFilters({
+      ...filters,
+      from_date: "",
+      to_date: "",
+    });
+  }
+
+  setDatePreset(preset);
+};
   const dashboard = useQuery({
     queryKey: ["analytics", filters],
     queryFn: () =>
@@ -93,54 +168,144 @@ export function AnalyticsPage() {
           </Button>
         </Stack>
       </Stack>
-      <Stack direction={{ xs: "column", md: "row" }} spacing={1} mb={3}>
-        <TextField
-          label="From"
-          type="date"
-          InputLabelProps={{ shrink: true }}
-          value={filters.from_date}
-          onChange={(e) =>
-            setFilters({ ...filters, from_date: e.target.value })
-          }
-        />
-        <TextField
-          label="To"
-          type="date"
-          InputLabelProps={{ shrink: true }}
-          value={filters.to_date}
-          onChange={(e) => setFilters({ ...filters, to_date: e.target.value })}
-        />
-        <TextField
-          label="Brand"
-          value={filters.brand}
-          onChange={(e) => setFilters({ ...filters, brand: e.target.value })}
-        />
-        <Select
-          displayEmpty
-          value={filters.channel}
-          onChange={(e) =>
-            setFilters({ ...filters, channel: String(e.target.value) })
-          }
-        >
-          <MenuItem value="">All channels</MenuItem>
-          <MenuItem value="RETAIL_STORE">Retail store</MenuItem>
-          <MenuItem value="ONLINE_STORE">Online store</MenuItem>
-          <MenuItem value="MARKETPLACE">Marketplace</MenuItem>
-        </Select>
-        <Select
-          displayEmpty
-          value={filters.payment_method}
-          onChange={(e) =>
-            setFilters({ ...filters, payment_method: String(e.target.value) })
-          }
-        >
-          <MenuItem value="">All payments</MenuItem>
-          <MenuItem value="CASH">Cash</MenuItem>
-          <MenuItem value="CARD">Card</MenuItem>
-          <MenuItem value="UPI">UPI</MenuItem>
-          <MenuItem value="BANK_TRANSFER">Bank transfer</MenuItem>
-        </Select>
-      </Stack>
+      <Stack
+  direction={{ xs: "column", md: "row" }}
+  spacing={1}
+  mb={3}
+  flexWrap="wrap"
+>
+  <Select
+    displayEmpty
+    value={datePreset}
+    onChange={(e) =>
+      handleDatePreset(String(e.target.value))
+    }
+    sx={{ minWidth: 170 }}
+  >
+    <MenuItem value="custom">Custom Range</MenuItem>
+    <MenuItem value="this_month">This Month</MenuItem>
+    <MenuItem value="last_month">Last Month</MenuItem>
+  </Select>
+
+  {datePreset === "custom" && (
+    <>
+      <TextField
+        label="From"
+        type="date"
+        InputLabelProps={{ shrink: true }}
+        value={filters.from_date}
+        onChange={(e) =>
+          setFilters({
+            ...filters,
+            from_date: e.target.value,
+          })
+        }
+      />
+
+      <TextField
+        label="To"
+        type="date"
+        InputLabelProps={{ shrink: true }}
+        value={filters.to_date}
+        onChange={(e) =>
+          setFilters({
+            ...filters,
+            to_date: e.target.value,
+          })
+        }
+      />
+    </>
+  )}
+
+  <Select
+    displayEmpty
+    value={filters.product_id}
+    onChange={(e) =>
+      setFilters({
+        ...filters,
+        product_id: String(e.target.value),
+      })
+    }
+    sx={{ minWidth: 180 }}
+  >
+    <MenuItem value="">All Products</MenuItem>
+
+    {(products.data ?? []).map((product) => (
+      <MenuItem
+        key={product.id}
+        value={String(product.id)}
+      >
+        {product.name}
+      </MenuItem>
+    ))}
+  </Select>
+
+  <Select
+    displayEmpty
+    value={filters.category_id}
+    onChange={(e) =>
+      setFilters({
+        ...filters,
+        category_id: String(e.target.value),
+      })
+    }
+    sx={{ minWidth: 180 }}
+  >
+    <MenuItem value="">All Categories</MenuItem>
+
+    {(categories.data ?? []).map((category) => (
+      <MenuItem
+        key={category.id}
+        value={String(category.id)}
+      >
+        {category.name}
+      </MenuItem>
+    ))}
+  </Select>
+
+  <Select
+    displayEmpty
+    value={filters.customer_id}
+    onChange={(e) =>
+      setFilters({
+        ...filters,
+        customer_id: String(e.target.value),
+      })
+    }
+    sx={{ minWidth: 180 }}
+  >
+    <MenuItem value="">All Customers</MenuItem>
+
+    {(customers.data ?? []).map((customer) => (
+      <MenuItem
+        key={customer.id}
+        value={String(customer.id)}
+      >
+        {customer.full_name}
+      </MenuItem>
+    ))}
+  </Select>
+
+  <Select
+    displayEmpty
+    value={filters.payment_method}
+    onChange={(e) =>
+      setFilters({
+        ...filters,
+        payment_method: String(e.target.value),
+      })
+    }
+    sx={{ minWidth: 180 }}
+  >
+    <MenuItem value="">All Payments</MenuItem>
+    <MenuItem value="CASH">Cash</MenuItem>
+    <MenuItem value="CARD">Card</MenuItem>
+    <MenuItem value="UPI">UPI</MenuItem>
+    <MenuItem value="BANK_TRANSFER">
+      Bank Transfer
+    </MenuItem>
+  </Select>
+</Stack>
       <Grid container spacing={2} mb={3}>
         {[
           [

@@ -9,18 +9,35 @@ from app.core.database import get_db
 from app.core.dependencies import require_role
 from app.schemas.customer import CustomerPayload
 from app.services.customer_service import (
+    change_customer_status,
     create_customer,
     customer_detail,
     customer_summary,
-    change_customer_status,
-    soft_delete_customer,
     list_customers,
+    soft_delete_customer,
     update_customer,
 )
 
-router = APIRouter(prefix="/customers", tags=["Customers"])
-viewer = require_role("SUPER_ADMIN", "COMPANY_ADMIN", "ANALYST")
-admin = require_role("SUPER_ADMIN", "COMPANY_ADMIN")
+router = APIRouter(
+    prefix="/customers",
+    tags=["Customers"],
+)
+
+viewer = require_role(
+    "SUPER_ADMIN",
+    "COMPANY_ADMIN",
+    "ANALYST",
+)
+
+admin = require_role(
+    "SUPER_ADMIN",
+    "COMPANY_ADMIN",
+)
+
+
+# ============================================================
+# LIST CUSTOMERS
+# ============================================================
 
 
 @router.get("/")
@@ -50,11 +67,27 @@ def list_all(
     )
 
 
+# ============================================================
+# CREATE CUSTOMER
+# ============================================================
+
+
 @router.post("/")
 def create(
-    payload: CustomerPayload, db: Session = Depends(get_db), current_user=Depends(admin)
+    payload: CustomerPayload,
+    db: Session = Depends(get_db),
+    current_user=Depends(admin),
 ):
-    return create_customer(db, current_user, payload)
+    return create_customer(
+        db,
+        current_user,
+        payload,
+    )
+
+
+# ============================================================
+# CUSTOMER SUMMARY
+# ============================================================
 
 
 @router.get("/summary")
@@ -62,51 +95,17 @@ def summary(
     db: Session = Depends(get_db),
     current_user=Depends(viewer),
 ):
-    return customer_summary(db, current_user)
+    return customer_summary(
+        db,
+        current_user,
+    )
 
 
-@router.get("/{customer_id}")
-def detail(
-    customer_id: int, db: Session = Depends(get_db), current_user=Depends(viewer)
-):
-    return customer_detail(db, current_user, customer_id)
-
-
-@router.put("/{customer_id}")
-def update(
-    customer_id: int,
-    payload: CustomerPayload,
-    db: Session = Depends(get_db),
-    current_user=Depends(admin),
-):
-    return update_customer(db, current_user, customer_id, payload)
-
-
-@router.patch("/{customer_id}/activate")
-def activate(
-    customer_id: int,
-    db: Session = Depends(get_db),
-    current_user=Depends(admin),
-):
-    return change_customer_status(db, current_user, customer_id, "ACTIVE", "ACTIVATED")
-
-
-@router.patch("/{customer_id}/deactivate")
-def deactivate(
-    customer_id: int,
-    db: Session = Depends(get_db),
-    current_user=Depends(admin),
-):
-    return change_customer_status(db, current_user, customer_id, "INACTIVE", "DEACTIVATED")
-
-
-@router.delete("/{customer_id}")
-def delete(
-    customer_id: int,
-    db: Session = Depends(get_db),
-    current_user=Depends(admin),
-):
-    return soft_delete_customer(db, current_user, customer_id)
+# ============================================================
+# CUSTOMER CSV EXPORT
+# IMPORTANT:
+# Keep this ABOVE /{customer_id}
+# ============================================================
 
 
 @router.get("/export/csv")
@@ -114,7 +113,11 @@ def export_customer_csv(
     db: Session = Depends(get_db),
     current_user=Depends(viewer),
 ):
-    customers = list_customers(db, current_user, page_size=100)["items"]
+    customers = list_customers(
+        db,
+        current_user,
+        page_size=100,
+    )["items"]
 
     output = io.StringIO()
 
@@ -148,8 +151,15 @@ def export_customer_csv(
     return StreamingResponse(
         iter([output.getvalue()]),
         media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=customers.csv"},
+        headers={"Content-Disposition": ("attachment; filename=customers.csv")},
     )
+
+
+# ============================================================
+# CUSTOMER PDF EXPORT
+# IMPORTANT:
+# Keep this ABOVE /{customer_id}
+# ============================================================
 
 
 @router.get("/export/pdf")
@@ -159,10 +169,21 @@ def export_customer_pdf(
 ):
     from app.utils.pdf import build_pdf
 
-    customers = list_customers(db, current_user, page_size=100)["items"]
+    customers = list_customers(
+        db,
+        current_user,
+        page_size=100,
+    )["items"]
+
     buffer = build_pdf(
         "RetailPulse Customer Report",
-        ["Customer", "Email", "Orders", "Spent", "Status"],
+        [
+            "Customer",
+            "Email",
+            "Orders",
+            "Spent",
+            "Status",
+        ],
         [
             [
                 customer["full_name"],
@@ -178,5 +199,103 @@ def export_customer_pdf(
     return StreamingResponse(
         buffer,
         media_type="application/pdf",
-        headers={"Content-Disposition": "attachment; filename=customers.pdf"},
+        headers={"Content-Disposition": ("attachment; filename=customers.pdf")},
+    )
+
+
+# ============================================================
+# CUSTOMER DETAILS
+# IMPORTANT:
+# Dynamic route comes AFTER /export/*
+# ============================================================
+
+
+@router.get("/{customer_id}")
+def detail(
+    customer_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(viewer),
+):
+    return customer_detail(
+        db,
+        current_user,
+        customer_id,
+    )
+
+
+# ============================================================
+# UPDATE CUSTOMER
+# ============================================================
+
+
+@router.put("/{customer_id}")
+def update(
+    customer_id: int,
+    payload: CustomerPayload,
+    db: Session = Depends(get_db),
+    current_user=Depends(admin),
+):
+    return update_customer(
+        db,
+        current_user,
+        customer_id,
+        payload,
+    )
+
+
+# ============================================================
+# ACTIVATE CUSTOMER
+# ============================================================
+
+
+@router.patch("/{customer_id}/activate")
+def activate(
+    customer_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(admin),
+):
+    return change_customer_status(
+        db,
+        current_user,
+        customer_id,
+        "ACTIVE",
+        "ACTIVATED",
+    )
+
+
+# ============================================================
+# DEACTIVATE CUSTOMER
+# ============================================================
+
+
+@router.patch("/{customer_id}/deactivate")
+def deactivate(
+    customer_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(admin),
+):
+    return change_customer_status(
+        db,
+        current_user,
+        customer_id,
+        "INACTIVE",
+        "DEACTIVATED",
+    )
+
+
+# ============================================================
+# SOFT DELETE CUSTOMER
+# ============================================================
+
+
+@router.delete("/{customer_id}")
+def delete(
+    customer_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(admin),
+):
+    return soft_delete_customer(
+        db,
+        current_user,
+        customer_id,
     )

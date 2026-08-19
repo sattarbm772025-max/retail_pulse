@@ -1,10 +1,14 @@
 import {
-  Box,
   Button,
   Card,
   CardContent,
   Chip,
   Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
   Typography,
 } from "@mui/material";
 
@@ -25,76 +29,85 @@ export function SalesTable({
   onEdit,
   onDelete,
 }: SalesTableProps): React.JSX.Element {
-  if (loading) {
-    return <Typography>Loading sales...</Typography>;
-  }
-
-  if (sales.length === 0) {
-    return <Typography color="text.secondary">No sales found.</Typography>;
-  }
+  if (loading) return <Typography>Loading sales...</Typography>;
+  if (!sales.length)
+    return (
+      <Typography color="text.secondary">
+        No sales found. Create your first sale to see it here.
+      </Typography>
+    );
 
   return (
-    <Stack spacing={1}>
-      {sales.map((sale) => (
-        <Card key={sale.id} variant="outlined">
-          <CardContent>
-            <Stack
-              direction={{
-                xs: "column",
-                sm: "row",
-              }}
-              spacing={1}
-              alignItems={{
-                sm: "center",
-              }}
-            >
-              <Box sx={{ flexGrow: 1 }}>
-                <Typography fontWeight={700}>
-                  {sale.invoice_number} {" · "} {sale.customer_name}
-                </Typography>
-
-                <Typography variant="body2" color="text.secondary">
-                  {new Date(sale.sale_date).toLocaleString()}
-                  {" · "}
-                  {sale.items.map((item) => item.product_name).join(", ")}
-                </Typography>
-              </Box>
-
-              <Stack
-                direction="row"
-                spacing={1}
-                alignItems="center"
-                flexWrap="wrap"
-              >
-                <Chip
-                  size="small"
-                  label={sale.sales_channel.replace("_", " ")}
-                />
-
-                <Typography fontWeight={800}>
-                  ₹{sale.total_amount.toFixed(2)}
-                </Typography>
-
-                <Button size="small" onClick={() => onDetails(sale)}>
-                  Details
-                </Button>
-
-                <Button size="small" onClick={() => onEdit(sale)}>
-                  Edit
-                </Button>
-
-                <Button
-                  size="small"
-                  color="error"
-                  onClick={() => onDelete(sale)}
-                >
-                  Delete
-                </Button>
-              </Stack>
-            </Stack>
-          </CardContent>
-        </Card>
-      ))}
-    </Stack>
+    <Card>
+      <CardContent sx={{ p: 0, overflowX: "auto" }}>
+        <Table size="small" sx={{ minWidth: 780 }}>
+          <TableHead>
+            <TableRow>
+              <TableCell>Invoice</TableCell>
+              <TableCell>Customer</TableCell>
+              <TableCell>Date</TableCell>
+              <TableCell>Items</TableCell>
+              <TableCell>Channel</TableCell>
+              <TableCell>Payment</TableCell>
+              <TableCell align="right">Amount</TableCell>
+              <TableCell>Actions</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {sales.map((sale) => (
+              <TableRow key={sale.id} hover>
+                <TableCell>
+                  <Typography fontWeight={800}>
+                    {sale.invoice_number}
+                  </Typography>
+                </TableCell>
+                <TableCell>{sale.customer_name}</TableCell>
+                <TableCell>
+                  {new Date(sale.sale_date).toLocaleDateString()}
+                </TableCell>
+                <TableCell>{sale.items.length}</TableCell>
+                <TableCell>
+                  <Chip
+                    size="small"
+                    label={sale.sales_channel.replaceAll("_", " ")}
+                  />
+                </TableCell>
+                <TableCell>
+                  <Chip
+                    size="small"
+                    color={
+                      sale.payment_status === "PAID" ? "success" : "warning"
+                    }
+                    label={sale.payment_status}
+                  />
+                </TableCell>
+                <TableCell align="right">
+                  <Typography fontWeight={800}>
+                    ₹{sale.total_amount.toFixed(2)}
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Stack direction="row" spacing={0.5}>
+                    <Button size="small" onClick={() => onDetails(sale)}>
+                      View
+                    </Button>
+                    <Button size="small" onClick={() => onEdit(sale)}>
+                      Edit
+                    </Button>
+                    <Button
+                      size="small"
+                      color="error"
+                      onClick={() => onDelete(sale)}
+                    >
+                      Delete
+                    </Button>
+                  </Stack>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
   );
 }

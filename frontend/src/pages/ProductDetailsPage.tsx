@@ -15,12 +15,18 @@ import { analyticsApi } from "../api/analyticsApi";
 export function ProductDetailsPage(): React.JSX.Element {
   const { id } = useParams();
 
-  const { data, isLoading, error } = useQuery({
+  const { data: responseData, isLoading, error } = useQuery({
     queryKey: ["product-details", id],
     queryFn: () =>
       analyticsApi.productDetails(Number(id)).then((res) => res.data),
     enabled: !!id,
   });
+
+  const data = responseData!;
+
+  if (!isLoading && !error && !data) {
+    return <DashboardLayout><Alert severity="info">Product details are not available.</Alert></DashboardLayout>;
+  }
 
   return (
     <DashboardLayout>
