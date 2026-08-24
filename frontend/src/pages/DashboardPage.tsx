@@ -67,48 +67,45 @@ export function DashboardPage() {
 
   return (
     <DashboardLayout>
-      <Stack
-        direction={{
-          xs: "column",
-          sm: "row",
+      <Box
+        sx={{
+          p: { xs: 2.5, md: 4 },
+          mb: 4,
+          borderRadius: 4,
+          color: "white",
+          background: "linear-gradient(120deg, #0b1737, #2563eb)",
         }}
-
-        justifyContent="space-between"
-
-        spacing={2}
-
-        mb={4}
       >
-        <Box>
-          <Typography
-            variant="h4"
-
-            fontWeight={800}
-          >
-            Good to see you, {profile.name.split(" ")[0]}
-          </Typography>
-
-          <Typography
-            color="text.secondary"
-
-            mt={1}
-          >
-            Your organization analytics workspace is ready.
-          </Typography>
-        </Box>
-
-        <Chip
-          label={profile.company.name}
-
-          variant="outlined"
-
-          sx={{
-            alignSelf: "start",
-
-            bgcolor: "background.paper",
-          }}
-        />
-      </Stack>
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          justifyContent="space-between"
+          spacing={2}
+        >
+          <Box>
+            <Typography
+              variant="overline"
+              sx={{ letterSpacing: 1.5, opacity: 0.75 }}
+            >
+              OPERATIONS HOME
+            </Typography>
+            <Typography variant="h4" fontWeight={800}>
+              Good to see you, {profile.name.split(" ")[0]}
+            </Typography>
+            <Typography sx={{ opacity: 0.8, mt: 1 }}>
+              Track today’s sales and catalog health, then move straight into
+              your next task.
+            </Typography>
+          </Box>
+          <Chip
+            label={profile.company.name}
+            sx={{
+              alignSelf: "start",
+              color: "white",
+              bgcolor: "rgba(255,255,255,.14)",
+            }}
+          />
+        </Stack>
+      </Box>
 
       <Typography
         variant="h6"
@@ -137,7 +134,7 @@ export function DashboardPage() {
               md: 3,
             }}
           >
-            <Card variant="outlined">
+            <Card variant="outlined" sx={{ borderTop: "3px solid #2563eb" }}>
               <CardContent>
                 <Typography
                   color="text.secondary"
@@ -189,7 +186,7 @@ export function DashboardPage() {
               md: 3,
             }}
           >
-            <Card variant="outlined">
+            <Card variant="outlined" sx={{ borderTop: "3px solid #14b8a6" }}>
               <CardContent>
                 <Typography
                   color="text.secondary"
@@ -258,6 +255,13 @@ export function DashboardPage() {
               onClick={() => navigate("/catalog")}
             >
               Manage catalog
+            </Button>
+
+            <Button
+              variant="outlined"
+              onClick={() => navigate("/inventory/forecast")}
+            >
+              Review replenishment
             </Button>
           </Stack>
         </CardContent>

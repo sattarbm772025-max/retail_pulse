@@ -58,6 +58,53 @@ export type StockAdjustmentPayload = {
   remarks?: string;
 };
 
+export type ReplenishmentRisk =
+  "OUT_OF_STOCK" | "STOCKOUT_RISK" | "LOW_STOCK" | "HEALTHY" | "OVERSTOCK";
+
+export type ReplenishmentRecommendation = {
+  product_id: number;
+  inventory_id: number;
+  product: string;
+  sku: string;
+  category_id: number;
+  category: string;
+  brand: string | null;
+  supplier: string | null;
+  current_stock: number;
+  average_daily_sales: number;
+  forecasted_demand: number;
+  days_of_stock_remaining: number | null;
+  reorder_point: number;
+  safety_stock: number;
+  recommended_stock: number;
+  recommended_reorder_quantity: number;
+  stock_risk: ReplenishmentRisk;
+  reorder_required: boolean;
+  recommendation: string;
+};
+
+export type ReplenishmentResponse =
+  PaginatedResponse<ReplenishmentRecommendation> & {
+    summary: {
+      requiring_reorder: number;
+      stockout_risk: number;
+      overstocked: number;
+      healthy: number;
+    };
+    formula: string;
+  };
+
+export type ReplenishmentDetail = ReplenishmentRecommendation & {
+  demand_history: { date: string; demand: number }[];
+  stock_comparison: {
+    current_stock: number;
+    recommended_stock: number;
+    average_daily_sales: number;
+    reorder_point: number;
+    safety_stock: number;
+  };
+};
+
 export const inventoryApi = {
   list: (params: Record<string, string | number | undefined>) =>
     api.get<PaginatedResponse<InventoryItem>>("/inventory/", { params }),
@@ -80,4 +127,13 @@ export const inventoryApi = {
     }),
 
   exportPDF: () => api.get("/inventory/export/pdf", { responseType: "blob" }),
+
+  recommendations: (
+    params: Record<string, string | number | boolean | undefined>,
+  ) => api.get<ReplenishmentResponse>("/inventory/recommendations", { params }),
+
+  recommendationDetail: (productId: number, forecastDays = 30) =>
+    api.get<ReplenishmentDetail>(`/inventory/recommendations/${productId}`, {
+      params: { forecast_days: forecastDays },
+    }),
 };

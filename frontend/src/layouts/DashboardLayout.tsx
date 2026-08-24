@@ -62,8 +62,13 @@ const links = [
   },
 
   {
+    label: "Replenishment",
+    path: "/inventory/forecast",
+  },
+
+  {
     label: "Reports",
-    path: "/dashboard",
+    path: "/analytics",
   },
 ];
 
@@ -204,9 +209,11 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
       ? "Sales Management"
       : location.pathname === "/inventory"
         ? "Inventory Management"
-        : location.pathname === "/catalog"
-          ? "Product & Category Management"
-          : "Dashboard";
+        : location.pathname === "/inventory/forecast"
+          ? "Smart Replenishment"
+          : location.pathname === "/catalog"
+            ? "Product & Category Management"
+            : "Dashboard";
   return (
     <Box
       sx={{

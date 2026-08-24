@@ -12,6 +12,7 @@ from app.services.inventory_service import (
     summary,
     update_reorder_level,
 )
+from app.services.replenishment_service import recommendation_detail, recommendations
 
 router = APIRouter(
     prefix="/inventory",
@@ -25,6 +26,48 @@ admin_role = require_role(
     "COMPANY_ADMIN",
 )
 inventory_viewer_role = require_role("SUPER_ADMIN", "COMPANY_ADMIN", "ANALYST")
+
+
+@router.get("/forecast")
+@router.get("/recommendations")
+def forecast_recommendations(
+    forecast_days: int = 30,
+    risk: str | None = None,
+    category_id: int | None = None,
+    supplier: str | None = None,
+    product_id: int | None = None,
+    reorder_required: bool | None = None,
+    sort: str = "risk",
+    page: int = 1,
+    page_size: int = 10,
+    db: Session = Depends(get_db),
+    current_user=Depends(inventory_viewer_role),
+):
+    """Task 11: company-scoped demand forecast and stock recommendations."""
+    return recommendations(
+        db,
+        current_user,
+        forecast_days=forecast_days,
+        risk=risk,
+        category_id=category_id,
+        supplier=supplier,
+        product_id=product_id,
+        reorder_required=reorder_required,
+        sort=sort,
+        page=page,
+        page_size=page_size,
+    )
+
+
+@router.get("/recommendations/{product_id}")
+def forecast_recommendation_detail(
+    product_id: int,
+    forecast_days: int = 30,
+    db: Session = Depends(get_db),
+    current_user=Depends(inventory_viewer_role),
+):
+    """Task 11: detailed comparison and API-generated demand history."""
+    return recommendation_detail(db, current_user, product_id, forecast_days)
 
 
 # -------------------------

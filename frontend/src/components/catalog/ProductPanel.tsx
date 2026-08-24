@@ -33,6 +33,7 @@ const blankProduct: ProductPayload = {
   sku: "",
   category_id: 0,
   brand: "",
+  supplier: "",
   description: "",
   unit_price: 0,
   cost_price: 0,
@@ -169,6 +170,7 @@ export default function ProductPanel({
             sku: product.sku,
             category_id: product.category_id,
             brand: product.brand ?? "",
+            supplier: product.supplier ?? "",
             description: product.description ?? "",
             unit_price: product.unit_price,
             cost_price: product.cost_price,
@@ -298,6 +300,12 @@ export default function ProductPanel({
                   sku: v,
                 })
               }
+            />
+
+            <ProductField
+              label="Supplier"
+              value={form.supplier}
+              onChange={(v) => setForm({ ...form, supplier: v })}
             />
 
             <ProductField

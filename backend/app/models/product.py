@@ -81,6 +81,12 @@ class Product(Base):
         nullable=True,
     )
 
+    supplier = Column(
+        String(150),
+        nullable=True,
+        index=True,
+    )
+
     description = Column(
         String(1000),
         nullable=True,

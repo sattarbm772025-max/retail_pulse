@@ -312,12 +312,11 @@ export function SalesAnalyticsPage() {
    * response.data
    */
 
-  const productItems = productsQuery.data?.items ?? productsQuery.data ?? [];
+  const productItems = productsQuery.data ?? [];
 
-  const categoryItems =
-    categoriesQuery.data?.items ?? categoriesQuery.data ?? [];
+  const categoryItems = categoriesQuery.data ?? [];
 
-  const customerItems = customersQuery.data?.items ?? customersQuery.data ?? [];
+  const customerItems = customersQuery.data ?? [];
 
   /*
    * -------------------------------------------------------
@@ -577,7 +576,7 @@ export function SalesAnalyticsPage() {
                       label="Product"
                       value={productId ?? ""}
                       onChange={(event) => {
-                        const value = event.target.value;
+                        const value = String(event.target.value);
 
                         setProductId(value === "" ? undefined : Number(value));
                       }}
@@ -609,7 +608,7 @@ export function SalesAnalyticsPage() {
                       label="Category"
                       value={categoryId ?? ""}
                       onChange={(event) => {
-                        const value = event.target.value;
+                        const value = String(event.target.value);
 
                         setCategoryId(value === "" ? undefined : Number(value));
                       }}
@@ -641,7 +640,7 @@ export function SalesAnalyticsPage() {
                       label="Customer"
                       value={customerId ?? ""}
                       onChange={(event) => {
-                        const value = event.target.value;
+                        const value = String(event.target.value);
 
                         setCustomerId(value === "" ? undefined : Number(value));
                       }}

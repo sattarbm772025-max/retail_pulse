@@ -191,7 +191,7 @@ export interface SalesBusinessIntelligenceFilters {
   sort_by?: "revenue" | "quantity";
 }
 
-const withoutEmptyValues = <T extends Record<string, unknown>>(params: T) =>
+const withoutEmptyValues = (params: object) =>
   Object.fromEntries(
     Object.entries(params).filter(
       ([, value]) => value !== undefined && value !== null && value !== "",
