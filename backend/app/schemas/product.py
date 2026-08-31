@@ -7,6 +7,8 @@ class ProductBase(BaseModel):
     category_id: int
     brand: str | None = Field(default=None, max_length=100)
     supplier: str | None = Field(default=None, max_length=150)
+    lead_time_days: int = Field(default=7, ge=0, le=365)
+    safety_stock_days: int = Field(default=3, ge=0, le=365)
     description: str | None = Field(default=None, max_length=1000)
     unit_price: float = Field(gt=0)
     cost_price: float = Field(ge=0)

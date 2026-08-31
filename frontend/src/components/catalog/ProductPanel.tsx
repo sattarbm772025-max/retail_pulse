@@ -34,6 +34,8 @@ const blankProduct: ProductPayload = {
   category_id: 0,
   brand: "",
   supplier: "",
+  lead_time_days: 7,
+  safety_stock_days: 3,
   description: "",
   unit_price: 0,
   cost_price: 0,
@@ -171,6 +173,8 @@ export default function ProductPanel({
             category_id: product.category_id,
             brand: product.brand ?? "",
             supplier: product.supplier ?? "",
+            lead_time_days: product.lead_time_days ?? 7,
+            safety_stock_days: product.safety_stock_days ?? 3,
             description: product.description ?? "",
             unit_price: product.unit_price,
             cost_price: product.cost_price,
@@ -306,6 +310,22 @@ export default function ProductPanel({
               label="Supplier"
               value={form.supplier}
               onChange={(v) => setForm({ ...form, supplier: v })}
+            />
+
+            <ProductField
+              label="Lead Time (days)"
+              type="number"
+              value={String(form.lead_time_days)}
+              onChange={(v) => setForm({ ...form, lead_time_days: Number(v) })}
+            />
+
+            <ProductField
+              label="Safety Stock Days"
+              type="number"
+              value={String(form.safety_stock_days)}
+              onChange={(v) =>
+                setForm({ ...form, safety_stock_days: Number(v) })
+              }
             />
 
             <ProductField

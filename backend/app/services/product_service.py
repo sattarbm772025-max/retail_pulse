@@ -49,6 +49,8 @@ def serialize_product(product):
         "category_name": product.category.name,
         "brand": product.brand,
         "supplier": product.supplier,
+        "lead_time_days": product.lead_time_days,
+        "safety_stock_days": product.safety_stock_days,
         "description": product.description,
         "unit_price": product.unit_price,
         "cost_price": product.cost_price,

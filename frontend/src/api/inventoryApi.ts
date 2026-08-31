@@ -76,6 +76,8 @@ export type ReplenishmentRecommendation = {
   days_of_stock_remaining: number | null;
   reorder_point: number;
   safety_stock: number;
+  lead_time_days: number;
+  safety_stock_days: number;
   recommended_stock: number;
   recommended_reorder_quantity: number;
   stock_risk: ReplenishmentRisk;

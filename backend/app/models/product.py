@@ -87,6 +87,18 @@ class Product(Base):
         index=True,
     )
 
+    lead_time_days = Column(
+        Integer,
+        nullable=False,
+        default=7,
+    )
+
+    safety_stock_days = Column(
+        Integer,
+        nullable=False,
+        default=3,
+    )
+
     description = Column(
         String(1000),
         nullable=True,

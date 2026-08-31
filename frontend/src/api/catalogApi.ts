@@ -15,6 +15,8 @@ export type Product = {
   category_name: string;
   brand: string | null;
   supplier: string | null;
+  lead_time_days: number;
+  safety_stock_days: number;
   description: string | null;
   unit_price: number;
   cost_price: number;
@@ -42,6 +44,8 @@ export type ProductPayload = {
   category_id: number;
   brand: string;
   supplier: string;
+  lead_time_days: number;
+  safety_stock_days: number;
   description: string;
   unit_price: number;
   cost_price: number;

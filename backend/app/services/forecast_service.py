@@ -386,6 +386,15 @@ def update_forecast_accuracy(
 
     actual_end = actual_start + timedelta(days=forecast.forecast_period - 1)
 
+    if date.today() <= actual_end:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Forecast period has not ended yet. "
+                f"Accuracy can be measured after {actual_end.isoformat()}."
+            ),
+        )
+
     actual_sales = (
         db.query(
             func.coalesce(
@@ -423,6 +432,27 @@ def update_forecast_accuracy(
         "actual_sales": actual_sales,
         "accuracy": history.accuracy,
     }
+
+
+def refresh_completed_forecast_accuracy(db, user):
+    """Fill accuracy only for company forecasts whose measurement window ended."""
+    today = date.today()
+    pending = (
+        db.query(DemandForecast.id, DemandForecast.generated_at, DemandForecast.forecast_period)
+        .join(ForecastHistory, ForecastHistory.forecast_id == DemandForecast.id)
+        .filter(
+            DemandForecast.company_id == user.company_id,
+            ForecastHistory.actual_sales.is_(None),
+        )
+        .all()
+    )
+    updated = []
+    for forecast_id, generated_at, forecast_period in pending:
+        measurement_end = generated_at.date() + timedelta(days=forecast_period)
+        if today > measurement_end:
+            update_forecast_accuracy(db, user, forecast_id)
+            updated.append(forecast_id)
+    return {"updated": len(updated), "forecast_ids": updated}
 
 
 def list_forecasts(

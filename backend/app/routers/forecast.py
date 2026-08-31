@@ -9,7 +9,12 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.dependencies import require_role
-from app.services.forecast_service import generate_forecasts, list_forecasts
+from app.services.forecast_service import (
+    generate_forecasts,
+    list_forecasts,
+    refresh_completed_forecast_accuracy,
+    update_forecast_accuracy,
+)
 
 router = APIRouter(prefix="/forecasts", tags=["Forecasts"])
 role = require_role("SUPER_ADMIN", "COMPANY_ADMIN", "ANALYST")
@@ -21,7 +26,27 @@ def generate(
 ):
     if period not in {7, 30, 90}:
         raise HTTPException(status_code=422, detail="Period must be 7, 30, or 90 days")
+    refresh_completed_forecast_accuracy(db, current_user)
     return generate_forecasts(db, current_user, period)
+
+
+@router.post("/forecast/{forecast_id}/accuracy")
+def calculate_accuracy(
+    forecast_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(role),
+):
+    """Calculate actual accuracy after the forecast window has ended."""
+    return update_forecast_accuracy(db, current_user, forecast_id)
+
+
+@router.post("/accuracy/refresh")
+def refresh_accuracy(
+    db: Session = Depends(get_db),
+    current_user=Depends(role),
+):
+    """Refresh every completed forecast for the current company."""
+    return refresh_completed_forecast_accuracy(db, current_user)
 
 
 @router.get("/")
