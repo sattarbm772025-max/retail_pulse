@@ -30,6 +30,7 @@ import { CategoryAnalyticsPage } from "./pages/CategoryAnalyticsPage";
 import { SalesAnalyticsPage } from "./pages/SalesAnalyticsPage";
 import { ForeCastPage } from "./pages/ForeCastPage";
 import { InventoryForecastPage } from "./pages/InventoryForecastPage";
+import { DataImportPage } from "./pages/DataImportPage";
 
 const theme = createTheme({
   palette: {
@@ -127,6 +128,7 @@ export default function App() {
 
                 <Route element={<AdminRoute />}>
                   <Route path="/catalog" element={<CatalogPage />} />
+                  <Route path="/data-import" element={<DataImportPage />} />
                 </Route>
               </Route>
 

@@ -215,9 +215,9 @@ def _make_sale(db, current_user, request, invoice_number=None):
 # =================================================
 
 
-def create_sale(db, current_user, request):
+def create_sale(db, current_user, request, invoice_number=None):
 
-    sale = _make_sale(db, current_user, request)
+    sale = _make_sale(db, current_user, request, invoice_number)
 
     create_audit_log(
         db,

@@ -9,6 +9,7 @@ from app.routers.company import router as company_router
 from app.routers.customer import router as customer_router
 from app.routers.forecast import router as forecast_router
 from app.routers.inventory import router as inventory_router
+from app.routers.import_data import router as import_router
 from app.routers.notification import router as notification_router
 from app.routers.product import router as product_router
 from app.routers.profile import router as profile_router
@@ -40,6 +41,7 @@ app.include_router(user_router)
 app.include_router(product_router)
 app.include_router(category_router)
 app.include_router(inventory_router)
+app.include_router(import_router)
 app.include_router(notification_router)
 app.include_router(sale_router)
 app.include_router(analytics_router)

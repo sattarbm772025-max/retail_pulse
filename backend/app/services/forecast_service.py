@@ -503,7 +503,7 @@ def list_forecasts(
 
         history = (
             db.query(ForecastHistory)
-            .filter(
+             .filter(
                 ForecastHistory.forecast_id == forecast.id,
             )
             .order_by(ForecastHistory.created_at.desc())

@@ -70,6 +70,10 @@ const links = [
     label: "Reports",
     path: "/analytics",
   },
+  {
+    label: "Data Import",
+    path: "/data-import",
+  },
 ];
 
 export function DashboardLayout({ children }: { children: ReactNode }) {
@@ -213,6 +217,8 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
           ? "Smart Replenishment"
           : location.pathname === "/catalog"
             ? "Product & Category Management"
+            : location.pathname === "/data-import"
+              ? "Data Import"
             : "Dashboard";
   return (
     <Box
