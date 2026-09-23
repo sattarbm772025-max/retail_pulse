@@ -74,6 +74,10 @@ const links = [
     label: "Data Import",
     path: "/data-import",
   },
+  {
+    label: "Audit Logs",
+    path: "/audit-logs",
+  },
 ];
 
 export function DashboardLayout({ children }: { children: ReactNode }) {
@@ -138,7 +142,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
       </Stack>
 
       <List disablePadding>
-        {links.map((link) => (
+        {links.filter((link) => !["Data Import", "Audit Logs"].includes(link.label) || ["SUPER_ADMIN", "COMPANY_ADMIN"].includes(profile?.role ?? "")).map((link) => (
           <ListItemButton
             key={link.label}
             selected={
@@ -219,6 +223,8 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
             ? "Product & Category Management"
             : location.pathname === "/data-import"
               ? "Data Import"
+              : location.pathname === "/audit-logs"
+                ? "Audit Logs"
             : "Dashboard";
   return (
     <Box

@@ -118,8 +118,13 @@ def create_product(db, current_user, request):
         db,
         current_user.company_id,
         current_user.id,
-        f"Product Created: {product.name}",
+        "CREATE",
         commit=False,
+        entity_type="PRODUCT",
+        entity_name=product.name,
+        resource_id=product.id,
+        description=f"Product created: {product.name}",
+        after_values=request.model_dump(),
     )
 
     db.commit()
@@ -206,6 +211,7 @@ def update_product(product_id, request, db, current_user):
 
     check_duplicate(db, request, current_user.company_id, product_id)
 
+    before = {key: getattr(product, key) for key in request.model_dump()}
     old_status = product.status
 
     for key, value in request.model_dump().items():
@@ -224,7 +230,7 @@ def update_product(product_id, request, db, current_user):
 
         action = f"Product Updated: {product.name}"
 
-    create_audit_log(db, current_user.company_id, current_user.id, action, commit=False)
+    create_audit_log(db, current_user.company_id, current_user.id, "UPDATE", commit=False, entity_type="PRODUCT", entity_name=product.name, resource_id=product.id, description=action, before_values=before, after_values=request.model_dump())
 
     db.commit()
 
@@ -250,8 +256,12 @@ def delete_product(product_id, db, current_user):
         db,
         current_user.company_id,
         current_user.id,
-        f"Product Deleted: {name}",
+        "DELETE",
         commit=False,
+        entity_type="PRODUCT",
+        entity_name=name,
+        resource_id=product_id,
+        description=f"Product deleted: {name}",
     )
 
     db.commit()

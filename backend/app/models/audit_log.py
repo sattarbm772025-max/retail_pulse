@@ -1,5 +1,6 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 
 from app.core.database import Base
 
@@ -39,6 +40,16 @@ class AuditLog(Base):
         nullable=True,
     )
 
+    resource_id = Column(Integer, nullable=True, index=True)
+
+    description = Column(Text, nullable=True)
+
+    before_values = Column(Text, nullable=True)
+
+    after_values = Column(Text, nullable=True)
+
+    status = Column(String(20), nullable=False, default="SUCCESS", index=True)
+
     quantity_changed = Column(
         Integer,
         nullable=True,
@@ -58,3 +69,5 @@ class AuditLog(Base):
         DateTime(timezone=True),
         server_default=func.now(),
     )
+
+    user = relationship("User")

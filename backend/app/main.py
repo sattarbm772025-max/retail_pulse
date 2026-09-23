@@ -1,8 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.middleware.audit_context import AuditContextMiddleware
 
 from app.models import *
 from app.routers.analytics import router as analytics_router
+from app.routers.audit_log import router as audit_log_router
 from app.routers.auth import router as auth_router
 from app.routers.category import router as category_router
 from app.routers.company import router as company_router
@@ -33,6 +35,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(AuditContextMiddleware)
 
 app.include_router(auth_router)
 app.include_router(profile_router)
@@ -45,6 +48,7 @@ app.include_router(import_router)
 app.include_router(notification_router)
 app.include_router(sale_router)
 app.include_router(analytics_router)
+app.include_router(audit_log_router)
 app.include_router(customer_router)
 app.include_router(forecast_router)
 
