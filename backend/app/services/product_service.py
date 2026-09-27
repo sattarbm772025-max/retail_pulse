@@ -230,7 +230,19 @@ def update_product(product_id, request, db, current_user):
 
         action = f"Product Updated: {product.name}"
 
-    create_audit_log(db, current_user.company_id, current_user.id, "UPDATE", commit=False, entity_type="PRODUCT", entity_name=product.name, resource_id=product.id, description=action, before_values=before, after_values=request.model_dump())
+    create_audit_log(
+        db,
+        current_user.company_id,
+        current_user.id,
+        "UPDATE",
+        commit=False,
+        entity_type="PRODUCT",
+        entity_name=product.name,
+        resource_id=product.id,
+        description=action,
+        before_values=before,
+        after_values=request.model_dump(),
+    )
 
     db.commit()
 

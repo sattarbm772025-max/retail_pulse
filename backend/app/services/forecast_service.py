@@ -438,7 +438,11 @@ def refresh_completed_forecast_accuracy(db, user):
     """Fill accuracy only for company forecasts whose measurement window ended."""
     today = date.today()
     pending = (
-        db.query(DemandForecast.id, DemandForecast.generated_at, DemandForecast.forecast_period)
+        db.query(
+            DemandForecast.id,
+            DemandForecast.generated_at,
+            DemandForecast.forecast_period,
+        )
         .join(ForecastHistory, ForecastHistory.forecast_id == DemandForecast.id)
         .filter(
             DemandForecast.company_id == user.company_id,
@@ -503,7 +507,7 @@ def list_forecasts(
 
         history = (
             db.query(ForecastHistory)
-             .filter(
+            .filter(
                 ForecastHistory.forecast_id == forecast.id,
             )
             .order_by(ForecastHistory.created_at.desc())

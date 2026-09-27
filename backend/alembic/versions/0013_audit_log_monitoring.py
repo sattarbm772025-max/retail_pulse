@@ -3,6 +3,7 @@
 Revision ID: 0013_audit_log_monitoring
 Revises: 0012_data_import_history
 """
+
 from alembic import op
 import sqlalchemy as sa
 
@@ -17,10 +18,17 @@ def upgrade():
     op.add_column("audit_logs", sa.Column("description", sa.Text(), nullable=True))
     op.add_column("audit_logs", sa.Column("before_values", sa.Text(), nullable=True))
     op.add_column("audit_logs", sa.Column("after_values", sa.Text(), nullable=True))
-    op.add_column("audit_logs", sa.Column("status", sa.String(length=20), nullable=False, server_default="SUCCESS"))
+    op.add_column(
+        "audit_logs",
+        sa.Column(
+            "status", sa.String(length=20), nullable=False, server_default="SUCCESS"
+        ),
+    )
     op.create_index("ix_audit_logs_resource_id", "audit_logs", ["resource_id"])
     op.create_index("ix_audit_logs_status", "audit_logs", ["status"])
-    op.create_index("ix_audit_logs_company_created", "audit_logs", ["company_id", "created_at"])
+    op.create_index(
+        "ix_audit_logs_company_created", "audit_logs", ["company_id", "created_at"]
+    )
 
 
 def downgrade():

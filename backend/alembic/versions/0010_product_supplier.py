@@ -7,7 +7,6 @@ Revises: cb30e2835944
 from alembic import op
 import sqlalchemy as sa
 
-
 revision = "0010_product_supplier"
 down_revision = "cb30e2835944"
 branch_labels = None

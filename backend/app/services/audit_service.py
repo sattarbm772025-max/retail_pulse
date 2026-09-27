@@ -33,8 +33,14 @@ def create_audit_log(
         quantity_changed=quantity_changed,
         resource_id=resource_id,
         description=description,
-        before_values=json.dumps(before_values, default=str) if before_values is not None else None,
-        after_values=json.dumps(after_values, default=str) if after_values is not None else None,
+        before_values=(
+            json.dumps(before_values, default=str)
+            if before_values is not None
+            else None
+        ),
+        after_values=(
+            json.dumps(after_values, default=str) if after_values is not None else None
+        ),
         status=status,
     )
 

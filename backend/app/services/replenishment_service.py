@@ -87,7 +87,9 @@ def _recommendation(risk: str, reorder_quantity: int) -> str:
     return messages[risk]
 
 
-def _build_recommendation(inventory: Inventory, daily_demand: dict[str, int], forecast_days: int):
+def _build_recommendation(
+    inventory: Inventory, daily_demand: dict[str, int], forecast_days: int
+):
     """Apply the documented replenishment formula to one product.
 
     safety stock = max(existing reorder level, average daily demand × product safety-stock days)
@@ -101,13 +103,21 @@ def _build_recommendation(inventory: Inventory, daily_demand: dict[str, int], fo
     forecasted_demand = ceil(average_daily_sales * forecast_days)
     lead_time_days = max(int(product.lead_time_days or 0), 0)
     safety_stock_days = max(int(product.safety_stock_days or 0), 0)
-    safety_stock = max(inventory.reorder_level, ceil(average_daily_sales * safety_stock_days))
+    safety_stock = max(
+        inventory.reorder_level, ceil(average_daily_sales * safety_stock_days)
+    )
     reorder_point = ceil(average_daily_sales * lead_time_days + safety_stock)
-    target_stock = ceil(average_daily_sales * (forecast_days + lead_time_days) + safety_stock)
+    target_stock = ceil(
+        average_daily_sales * (forecast_days + lead_time_days) + safety_stock
+    )
     current_stock = max(int(inventory.available_stock or 0), 0)
     recommended_reorder_quantity = max(target_stock - current_stock, 0)
     risk = _risk(current_stock, average_daily_sales, reorder_point, lead_time_days)
-    days_remaining = None if average_daily_sales <= 0 else round(current_stock / average_daily_sales, 1)
+    days_remaining = (
+        None
+        if average_daily_sales <= 0
+        else round(current_stock / average_daily_sales, 1)
+    )
 
     return {
         "product_id": product.id,
@@ -168,23 +178,33 @@ def recommendations(
         .group_by(SaleItem.product_id)
         .subquery()
     )
-    average_daily_sales = cast(func.coalesce(demand.c.total_sales, 0), Float) / HISTORY_DAYS
+    average_daily_sales = (
+        cast(func.coalesce(demand.c.total_sales, 0), Float) / HISTORY_DAYS
+    )
     safety_stock = func.greatest(
         Inventory.reorder_level,
         func.ceil(average_daily_sales * Product.safety_stock_days),
     )
-    reorder_point = func.ceil(average_daily_sales * Product.lead_time_days + safety_stock)
+    reorder_point = func.ceil(
+        average_daily_sales * Product.lead_time_days + safety_stock
+    )
     recommended_stock = func.ceil(
         average_daily_sales * (forecast_days + Product.lead_time_days) + safety_stock
     )
     reorder_quantity = func.greatest(recommended_stock - Inventory.available_stock, 0)
     days_remaining = case(
-        (average_daily_sales > 0, cast(Inventory.available_stock, Float) / average_daily_sales),
+        (
+            average_daily_sales > 0,
+            cast(Inventory.available_stock, Float) / average_daily_sales,
+        ),
         else_=None,
     )
     risk_level = case(
         (Inventory.available_stock <= 0, "OUT_OF_STOCK"),
-        (and_(average_daily_sales > 0, days_remaining <= Product.lead_time_days), "STOCKOUT_RISK"),
+        (
+            and_(average_daily_sales > 0, days_remaining <= Product.lead_time_days),
+            "STOCKOUT_RISK",
+        ),
         (Inventory.available_stock <= reorder_point, "LOW_STOCK"),
         (Inventory.available_stock > reorder_point * 3, "OVERSTOCK"),
         else_="HEALTHY",
@@ -256,12 +276,31 @@ def recommendations(
     filtered = query.subquery()
     totals = db.query(
         func.count().label("total"),
-        func.coalesce(func.sum(case((filtered.c.reorder_required.is_(True), 1), else_=0)), 0).label("requiring_reorder"),
-        func.coalesce(func.sum(case((filtered.c.stock_risk.in_(["OUT_OF_STOCK", "STOCKOUT_RISK"]), 1), else_=0)), 0).label("stockout_risk"),
-        func.coalesce(func.sum(case((filtered.c.stock_risk == "OVERSTOCK", 1), else_=0)), 0).label("overstocked"),
-        func.coalesce(func.sum(case((filtered.c.stock_risk == "HEALTHY", 1), else_=0)), 0).label("healthy"),
+        func.coalesce(
+            func.sum(case((filtered.c.reorder_required.is_(True), 1), else_=0)), 0
+        ).label("requiring_reorder"),
+        func.coalesce(
+            func.sum(
+                case(
+                    (filtered.c.stock_risk.in_(["OUT_OF_STOCK", "STOCKOUT_RISK"]), 1),
+                    else_=0,
+                )
+            ),
+            0,
+        ).label("stockout_risk"),
+        func.coalesce(
+            func.sum(case((filtered.c.stock_risk == "OVERSTOCK", 1), else_=0)), 0
+        ).label("overstocked"),
+        func.coalesce(
+            func.sum(case((filtered.c.stock_risk == "HEALTHY", 1), else_=0)), 0
+        ).label("healthy"),
     ).one()
-    rows = query.order_by(sorters[sort]).offset((page - 1) * page_size).limit(page_size).all()
+    rows = (
+        query.order_by(sorters[sort])
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
     return {
         "items": [
             {
@@ -276,16 +315,24 @@ def recommendations(
                 "current_stock": int(row.current_stock or 0),
                 "average_daily_sales": round(float(row.average_daily_sales or 0), 2),
                 "forecasted_demand": int(row.forecasted_demand or 0),
-                "days_of_stock_remaining": round(float(row.days_of_stock_remaining), 1) if row.days_of_stock_remaining is not None else None,
+                "days_of_stock_remaining": (
+                    round(float(row.days_of_stock_remaining), 1)
+                    if row.days_of_stock_remaining is not None
+                    else None
+                ),
                 "reorder_point": int(row.reorder_point or 0),
                 "safety_stock": int(row.safety_stock or 0),
                 "lead_time_days": row.lead_time_days,
                 "safety_stock_days": row.safety_stock_days,
                 "recommended_stock": int(row.recommended_stock or 0),
-                "recommended_reorder_quantity": int(row.recommended_reorder_quantity or 0),
+                "recommended_reorder_quantity": int(
+                    row.recommended_reorder_quantity or 0
+                ),
                 "stock_risk": row.stock_risk,
                 "reorder_required": bool(row.reorder_required),
-                "recommendation": _recommendation(row.stock_risk, int(row.recommended_reorder_quantity or 0)),
+                "recommendation": _recommendation(
+                    row.stock_risk, int(row.recommended_reorder_quantity or 0)
+                ),
             }
             for row in rows
         ],
@@ -303,7 +350,9 @@ def recommendations(
     }
 
 
-def recommendation_detail(db: Session, user, product_id: int, forecast_days: int = DEFAULT_FORECAST_DAYS):
+def recommendation_detail(
+    db: Session, user, product_id: int, forecast_days: int = DEFAULT_FORECAST_DAYS
+):
     result = recommendations(
         db,
         user,
@@ -312,16 +361,28 @@ def recommendation_detail(db: Session, user, product_id: int, forecast_days: int
         page_size=1,
     )
     if not result["items"]:
-        raise HTTPException(status_code=404, detail="Active inventory product not found")
+        raise HTTPException(
+            status_code=404, detail="Active inventory product not found"
+        )
     today = date.today()
-    history = _daily_demand(db, user.company_id, today - timedelta(days=HISTORY_DAYS - 1), today).get(product_id, {})
+    history = _daily_demand(
+        db, user.company_id, today - timedelta(days=HISTORY_DAYS - 1), today
+    ).get(product_id, {})
     item = _build_recommendation(
-        db.query(Inventory).filter(Inventory.product_id == product_id, Inventory.company_id == user.company_id).options(joinedload(Inventory.product).joinedload(Product.category)).one(),
+        db.query(Inventory)
+        .filter(
+            Inventory.product_id == product_id, Inventory.company_id == user.company_id
+        )
+        .options(joinedload(Inventory.product).joinedload(Product.category))
+        .one(),
         history,
         _validate_period(forecast_days),
     )
     item["demand_history"] = [
-        {"date": str(today - timedelta(days=offset)), "demand": history.get(str(today - timedelta(days=offset)), 0)}
+        {
+            "date": str(today - timedelta(days=offset)),
+            "demand": history.get(str(today - timedelta(days=offset)), 0),
+        }
         for offset in range(HISTORY_DAYS - 1, -1, -1)
     ]
     item["stock_comparison"] = {

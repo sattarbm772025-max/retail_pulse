@@ -235,8 +235,14 @@ def apply_movement(
         entity_name=product.name,
         resource_id=product.id,
         description=f"{reason}: stock changed from {previous_quantity} to {updated_quantity}",
-        before_values={"current_stock": previous_quantity, "stock_status": previous_status},
-        after_values={"current_stock": updated_quantity, "stock_status": inventory.stock_status},
+        before_values={
+            "current_stock": previous_quantity,
+            "stock_status": previous_status,
+        },
+        after_values={
+            "current_stock": updated_quantity,
+            "stock_status": inventory.stock_status,
+        },
         quantity_changed=quantity_changed,
     )
 
