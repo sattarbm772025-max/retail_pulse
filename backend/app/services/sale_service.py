@@ -14,6 +14,7 @@ from app.services.customer_service import (
     record_sale_for_customer,
 )
 from app.services.inventory_service import apply_movement, ensure_inventory
+from app.services.notification_service import create_notification
 
 LOW_STOCK_THRESHOLD = 10
 
@@ -232,6 +233,19 @@ def create_sale(db, current_user, request, invoice_number=None):
         current_user,
         sale,
         sum(item.quantity for item in sale.items),
+    )
+
+    create_notification(
+        db,
+        company_id=current_user.company_id,
+        notification_type="SALES_ALERT",
+        title="Sale recorded",
+        message=f"Invoice {sale.invoice_number} was created for {sale.customer_name} ({sale.total_amount}).",
+        priority="LOW",
+        resource_type="SALE",
+        resource_id=sale.id,
+        dedupe_key=f"sale:{sale.id}",
+        audience_roles=["SUPER_ADMIN", "COMPANY_ADMIN", "ANALYST"],
     )
 
     db.commit()

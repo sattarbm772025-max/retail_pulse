@@ -9,4 +9,5 @@ export const auditLogApi = {
   detail: (id: number) => api.get(`/audit-logs/${id}`),
   csv: (filters: AuditFilters) => api.get("/audit-logs/export/csv", { params: params(filters), responseType: "blob" }),
   pdf: (filters: AuditFilters) => api.get("/audit-logs/export/pdf", { params: params(filters), responseType: "blob" }),
+  clear: () => api.delete("/audit-logs/clear?confirm=true"),
 };

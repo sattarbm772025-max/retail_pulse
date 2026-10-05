@@ -78,6 +78,10 @@ const links = [
     label: "Audit Logs",
     path: "/audit-logs",
   },
+  {
+    label: "Notifications",
+    path: "/notifications",
+  },
 ];
 
 export function DashboardLayout({ children }: { children: ReactNode }) {
@@ -88,12 +92,10 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const [notificationAnchor, setNotificationAnchor] =
     useState<HTMLElement | null>(null);
-  const canViewNotifications = ["SUPER_ADMIN", "COMPANY_ADMIN"].includes(
-    profile?.role ?? "",
-  );
+  const canViewNotifications = Boolean(profile);
   const notifications = useQuery({
     queryKey: ["notifications"],
-    queryFn: () => notificationApi.list().then((response) => response.data),
+    queryFn: () => notificationApi.list({ page_size: 8, state: "UNREAD" }).then((response) => response.data),
     enabled: canViewNotifications,
     refetchInterval: 60_000,
   });
@@ -225,7 +227,9 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
               ? "Data Import"
               : location.pathname === "/audit-logs"
                 ? "Audit Logs"
-            : "Dashboard";
+                : location.pathname === "/notifications"
+                  ? "Notification Center"
+                  : "Dashboard";
   return (
     <Box
       sx={{
@@ -358,11 +362,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
                   }}
                 >
                   <Badge
-                    badgeContent={
-                      notifications.data?.filter(
-                        (notification) => !notification.is_read,
-                      ).length ?? 0
-                    }
+                    badgeContent={notifications.data?.total ?? 0}
                     color="error"
                     max={99}
                   >
@@ -375,20 +375,20 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
                   onClose={() => setNotificationAnchor(null)}
                 >
                   <Box px={2} py={1} minWidth={300}>
-                    <Typography fontWeight={700}>Notifications</Typography>
+                    <Stack direction="row" justifyContent="space-between"><Typography fontWeight={700}>Notifications</Typography><Button size="small" onClick={() => navigate("/notifications")}>View all</Button></Stack>
                     <Typography variant="caption" color="text.secondary">
                       Inventory alerts for your company
                     </Typography>
                   </Box>
-                  {notifications.data?.length ? (
-                    notifications.data.map((notification) => (
+                  {notifications.data?.items?.length ? (
+                    notifications.data.items.map((notification) => (
                       <MenuItem
                         key={notification.id}
                         sx={{ whiteSpace: "normal", maxWidth: 360 }}
                       >
                         <Box>
                           <Typography variant="body2">
-                            {notification.message}
+                            <b>{notification.title}</b><br />{notification.message}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
                             {new Date(notification.created_at).toLocaleString()}
@@ -414,7 +414,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
                       </MenuItem>
                     ))
                   ) : (
-                    <MenuItem disabled>No new inventory notifications</MenuItem>
+                    <MenuItem disabled>You're all caught up.</MenuItem>
                   )}
                 </Menu>
               </>

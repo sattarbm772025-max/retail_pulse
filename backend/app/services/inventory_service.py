@@ -7,6 +7,7 @@ from app.models.inventory import Inventory, InventoryMovement
 from app.models.notification import Notification
 from app.models.product import Product
 from app.services.audit_service import create_audit_log
+from app.services.notification_service import create_notification, expire_active_alerts
 
 # =====================================================
 # STOCK STATUS
@@ -101,16 +102,10 @@ def create_stock_notifications(
 
     product = inventory.product
 
-    if inventory.stock_status == "OUT_OF_STOCK" and previous_status != "OUT_OF_STOCK":
-
-        db.add(
-            Notification(
-                company_id=current_user.company_id,
-                product_id=product.id,
-                level="OUT_OF_STOCK",
-                message=f"{product.name} became out of stock.",
-            )
-        )
+    active_types = []
+    if inventory.available_stock == 0:
+        active_types.append("STOCKOUT")
+        create_notification(db, company_id=current_user.company_id, notification_type="STOCKOUT", title="Inventory stockout", message=f"{product.name} is out of stock.", priority="CRITICAL", product_id=product.id, resource_type="PRODUCT", resource_id=product.id, dedupe_key=f"stockout:{product.id}")
 
         create_audit_log(
             db,
@@ -123,19 +118,13 @@ def create_stock_notifications(
             quantity_changed=quantity,
         )
 
-    elif inventory.stock_status == "LOW_STOCK" and previous_status != "LOW_STOCK":
+    elif inventory.available_stock <= max(1, inventory.reorder_level // 2):
+        active_types.append("STOCKOUT_RISK")
+        create_notification(db, company_id=current_user.company_id, notification_type="STOCKOUT_RISK", title="Stockout risk", message=f"{product.name} has {inventory.available_stock} units remaining and may stock out soon.", priority="HIGH", product_id=product.id, resource_type="PRODUCT", resource_id=product.id, dedupe_key=f"stockout-risk:{product.id}", audience_roles=["SUPER_ADMIN", "COMPANY_ADMIN", "ANALYST"])
 
-        db.add(
-            Notification(
-                company_id=current_user.company_id,
-                product_id=product.id,
-                level="LOW_STOCK",
-                message=(
-                    f"{product.name} reached low stock "
-                    f"({inventory.available_stock} available)."
-                ),
-            )
-        )
+    elif inventory.available_stock < inventory.reorder_level:
+        active_types.append("LOW_STOCK")
+        create_notification(db, company_id=current_user.company_id, notification_type="LOW_STOCK", title="Low stock alert", message=f"{product.name} is below its reorder point ({inventory.available_stock}/{inventory.reorder_level}).", priority="MEDIUM", product_id=product.id, resource_type="PRODUCT", resource_id=product.id, dedupe_key=f"low-stock:{product.id}")
 
         create_audit_log(
             db,
@@ -148,16 +137,10 @@ def create_stock_notifications(
             quantity_changed=quantity,
         )
 
-    if movement_type != "SALE":
-
-        db.add(
-            Notification(
-                company_id=current_user.company_id,
-                product_id=product.id,
-                level="INVENTORY",
-                message=(f"{product.name} stock adjusted: {reason}"),
-            )
-        )
+    if inventory.reorder_level and inventory.available_stock > inventory.reorder_level * 3:
+        active_types.append("OVERSTOCK")
+        create_notification(db, company_id=current_user.company_id, notification_type="OVERSTOCK", title="Overstock insight", message=f"{product.name} has {inventory.available_stock} units, over three times its reorder point.", priority="LOW", product_id=product.id, resource_type="PRODUCT", resource_id=product.id, dedupe_key=f"overstock:{product.id}", audience_roles=["SUPER_ADMIN", "COMPANY_ADMIN", "ANALYST"])
+    expire_active_alerts(db, current_user.company_id, product.id, active_types)
 
 
 # =====================================================

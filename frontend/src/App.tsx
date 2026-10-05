@@ -32,6 +32,7 @@ import { ForeCastPage } from "./pages/ForeCastPage";
 import { InventoryForecastPage } from "./pages/InventoryForecastPage";
 import { DataImportPage } from "./pages/DataImportPage";
 import { AuditLogsPage } from "./pages/AuditLogsPage";
+import { NotificationsPage } from "./pages/NotificationsPage";
 
 const theme = createTheme({
   palette: {
@@ -109,6 +110,7 @@ export default function App() {
                 <Route path="/customers" element={<CustomersPage />} />
                 <Route path="/analytics" element={<AnalyticsPage />} />
                 <Route path="/forecast" element={<ForeCastPage />} />
+                <Route path="/notifications" element={<NotificationsPage />} />
 
                 <Route
                   path="/analytics/sales"

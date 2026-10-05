@@ -28,6 +28,7 @@ from app.services.audit_service import create_audit_log
 from app.services.customer_service import create_customer
 from app.services.product_service import create_product
 from app.services.sale_service import create_sale
+from app.services.notification_service import create_notification
 
 MAX_FILE_SIZE = 10 * 1024 * 1024
 MAX_ROWS = 10_000
@@ -431,6 +432,18 @@ def process(db, user, import_id):
     batch.failed_records += len(runtime_errors)
     batch.status = "COMPLETED" if not batch.failed_records else "COMPLETED_WITH_ERRORS"
     batch.completed_at = datetime.now(timezone.utc)
+    notification_type = "IMPORT_COMPLETED" if not batch.failed_records else "IMPORT_FAILED"
+    create_notification(
+        db,
+        company_id=user.company_id,
+        notification_type=notification_type,
+        title="Data import completed" if not batch.failed_records else "Data import completed with errors",
+        message=f"{batch.filename}: {success} records imported, {batch.failed_records} failed.",
+        priority="LOW" if not batch.failed_records else "MEDIUM",
+        resource_type="IMPORT",
+        resource_id=batch.id,
+        dedupe_key=f"import-result:{batch.id}",
+    )
     create_audit_log(
         db,
         user.company_id,

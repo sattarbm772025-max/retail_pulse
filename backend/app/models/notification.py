@@ -42,6 +42,25 @@ class Notification(Base):
         index=True,
     )
 
+    # Null means a company-wide notification visible to authorized roles.
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
+
+    # Comma-delimited roles permitted to read a company-wide notification.
+    audience_roles = Column(String(160), nullable=True)
+
+    notification_type = Column(String(40), nullable=False, default="SYSTEM_ALERT", index=True)
+
+    title = Column(String(160), nullable=True)
+
+    priority = Column(String(20), nullable=False, default="LOW", index=True)
+
+    resource_type = Column(String(50), nullable=True)
+
+    resource_id = Column(Integer, nullable=True, index=True)
+
+    # A stable key prevents the same active condition from creating repeated alerts.
+    dedupe_key = Column(String(255), nullable=True, index=True)
+
     message = Column(
         String(500),
         nullable=False,
@@ -58,6 +77,10 @@ class Notification(Base):
         nullable=False,
         default=0,
     )
+
+    read_at = Column(DateTime(timezone=True), nullable=True)
+
+    expires_at = Column(DateTime(timezone=True), nullable=True, index=True)
 
     created_at = Column(
         DateTime(timezone=True),

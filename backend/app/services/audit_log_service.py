@@ -99,7 +99,7 @@ def detail(db, user, log_id):
     return _row(log)
 
 
-def export_csv(db, user, **filters):
+def export_csv_chunks(db, user, **filters):
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(
@@ -115,12 +115,9 @@ def export_csv(db, user, **filters):
             "Status",
         ]
     )
-    for log in (
-        _query(db, user, **filters)
-        .order_by(AuditLog.created_at.desc())
-        .limit(10_000)
-        .all()
-    ):
+    yield output.getvalue()
+    output.seek(0); output.truncate(0)
+    for log in _query(db, user, **filters).order_by(AuditLog.created_at.desc()).yield_per(1000):
         item = _row(log)
         writer.writerow(
             [
@@ -135,7 +132,8 @@ def export_csv(db, user, **filters):
                 item["status"],
             ]
         )
-    return output.getvalue()
+        yield output.getvalue()
+        output.seek(0); output.truncate(0)
 
 
 def export_rows(db, user, **filters):
@@ -153,7 +151,15 @@ def export_rows(db, user, **filters):
             _row(log)
             for log in _query(db, user, **filters)
             .order_by(AuditLog.created_at.desc())
-            .limit(10_000)
             .all()
         ]
     ]
+
+
+def clear_company_logs(db, user):
+    """Remove prior company logs, then preserve an auditable retention event."""
+    deleted = db.query(AuditLog).filter(AuditLog.company_id == user.company_id).delete(synchronize_session=False)
+    from app.services.audit_service import create_audit_log
+    create_audit_log(db, user.company_id, user.id, "AUDIT_LOGS_CLEARED", commit=False, entity_type="AUDIT_LOG", description=f"Cleared {deleted} audit records")
+    db.commit()
+    return deleted
