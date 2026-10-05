@@ -71,6 +71,7 @@ function Field({
 export function LoginPage() {
   const navigate = useNavigate();
   const { signIn } = useAuth();
+  const [searchParams] = useSearchParams();
 
   const [error, setError] = useState("");
 
@@ -80,6 +81,9 @@ export function LoginPage() {
     formState: { errors, isSubmitting },
   } = useForm<LoginFields>({
     resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: searchParams.get("email") ?? "",
+    },
   });
 
   const submit = async (fields: LoginFields) => {
@@ -297,7 +301,10 @@ export function RegisterPage() {
       setDone(true);
 
       setTimeout(() => {
-        navigate("/login");
+        // The owner e-mail is the user account created by registration.  The
+        // company contact e-mail is not a login account, so prefill the right
+        // field instead of leaving this distinction ambiguous.
+        navigate(`/login?email=${encodeURIComponent(fields.owner_email.trim())}`);
       }, 1200);
     } catch (e: any) {
       setError(e.response?.data?.detail ?? "Unable to register the company.");
@@ -315,7 +322,7 @@ export function RegisterPage() {
 
           {done && (
             <Alert severity="success">
-              Company created. Redirecting to sign in…
+              Company created. Sign in with your administrator e-mail.
             </Alert>
           )}
 

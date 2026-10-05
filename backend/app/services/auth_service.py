@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 
 from fastapi import HTTPException
 from jose import JWTError, jwt
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.config import ALGORITHM, SECRET_KEY
@@ -27,6 +28,12 @@ from app.services.email_service import send_reset_email
 
 
 def register_company(request: CompanyRegister, db: Session):
+    # E-mail addresses are identifiers in this application.  Store and compare
+    # a canonical form so that a trailing space or different casing cannot make
+    # a newly registered administrator unable to sign in.
+    company_email = str(request.company_email).strip().lower()
+    owner_email = str(request.owner_email).strip().lower()
+
     if request.password != request.confirm_password:
         raise HTTPException(
             status_code=400,
@@ -36,7 +43,7 @@ def register_company(request: CompanyRegister, db: Session):
     company_exists = (
         db.query(Company)
         .filter(
-            (Company.email == request.company_email)
+            (func.lower(Company.email) == company_email)
             | (Company.name == request.company_name)
         )
         .first()
@@ -48,7 +55,11 @@ def register_company(request: CompanyRegister, db: Session):
             detail="Company name or email already exists",
         )
 
-    user_exists = db.query(User).filter(User.email == request.owner_email).first()
+    user_exists = (
+        db.query(User)
+        .filter(func.lower(User.email) == owner_email)
+        .first()
+    )
 
     if user_exists:
         raise HTTPException(
@@ -59,7 +70,7 @@ def register_company(request: CompanyRegister, db: Session):
     company = Company(
         name=request.company_name,
         industry=request.industry,
-        email=request.company_email,
+        email=company_email,
         address=request.company_address,
         phone=request.company_phone,
     )
@@ -71,7 +82,7 @@ def register_company(request: CompanyRegister, db: Session):
         admin = User(
             company_id=company.id,
             name=request.owner_name,
-            email=request.owner_email,
+            email=owner_email,
             password=hash_password(request.password),
             role="COMPANY_ADMIN",
             status="ACTIVE",
@@ -128,7 +139,14 @@ def login_user(
     ip_address: str = "Unknown",
     browser: str = "Unknown",
 ):
-    user = db.query(User).filter(User.email == email).first()
+    # Passwords are deliberately case-sensitive; only normalize the e-mail
+    # identifier used to find the account.
+    normalized_email = email.strip().lower()
+    user = (
+        db.query(User)
+        .filter(func.lower(User.email) == normalized_email)
+        .first()
+    )
 
     if not user or not verify_password(password, user.password):
         raise HTTPException(
