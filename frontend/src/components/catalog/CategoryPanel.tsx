@@ -129,6 +129,20 @@ export default function CategoryPanel({ categories, loading, error }: Props) {
           fullWidth
         />
 
+        <FormControl sx={{ minWidth: 150 }}>
+          <InputLabel>Category Status</InputLabel>
+          <Select
+            label="Category Status"
+            value={form.status}
+            onChange={(event) =>
+              setForm({ ...form, status: event.target.value })
+            }
+          >
+            <MenuItem value="ACTIVE">Active</MenuItem>
+            <MenuItem value="INACTIVE">Inactive</MenuItem>
+          </Select>
+        </FormControl>
+
         <TextField
           label="Description"
           value={form.description}
@@ -140,24 +154,6 @@ export default function CategoryPanel({ categories, loading, error }: Props) {
           }
           fullWidth
         />
-
-        <FormControl sx={{ minWidth: 150 }}>
-          <InputLabel>Status</InputLabel>
-
-          <Select
-            label="Status"
-            value={form.status}
-            onChange={(event) =>
-              setForm({
-                ...form,
-                status: event.target.value,
-              })
-            }
-          >
-            <MenuItem value="ACTIVE">Active</MenuItem>
-            <MenuItem value="INACTIVE">Inactive</MenuItem>
-          </Select>
-        </FormControl>
 
         <Button
           variant="contained"
@@ -178,6 +174,11 @@ export default function CategoryPanel({ categories, loading, error }: Props) {
           </Button>
         )}
       </Stack>
+
+      <Alert severity="info">
+        Category status applies only to the category. Product availability is
+        controlled separately from the Products tab.
+      </Alert>
 
       {message && (
         <Alert severity={message.includes("success") ? "success" : "error"}>
@@ -226,6 +227,8 @@ export default function CategoryPanel({ categories, loading, error }: Props) {
                     setForm({
                       name: category.name,
                       description: category.description ?? "",
+                      // Category status and product status are intentionally
+                      // separate; editing this never changes its products.
                       status: category.status,
                     });
                   }}

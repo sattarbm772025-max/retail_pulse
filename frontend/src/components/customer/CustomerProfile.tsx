@@ -121,6 +121,12 @@ export function CustomerProfile({
                           <Typography>
                             Amount: ₹{purchase.total_amount.toFixed(2)}
                           </Typography>
+
+                          {purchase.payment_status && (
+                            <Typography variant="body2" color="text.secondary">
+                              Payment: {purchase.payment_status}
+                            </Typography>
+                          )}
                         </CardContent>
                       </Card>
                     ))}
@@ -148,7 +154,13 @@ export function CustomerProfile({
                     {customer.timeline.map((item) => (
                       <Card key={item.id} variant="outlined">
                         <CardContent>
-                          <Typography fontWeight={600}>{item.event}</Typography>
+                          <Typography fontWeight={600}>{item.action}</Typography>
+
+                          {item.description && (
+                            <Typography variant="body2">
+                              {item.description}
+                            </Typography>
+                          )}
 
                           <Typography variant="body2" color="text.secondary">
                             {new Date(item.created_at).toLocaleString()}

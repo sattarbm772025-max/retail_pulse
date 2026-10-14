@@ -54,6 +54,8 @@ export function CustomerCharts({ customers }: Props): React.JSX.Element {
     "#9c27b0",
     "#d32f2f",
     "#0288d1",
+    "#6d4c41",
+    "#00897b",
   ];
 
   return (
@@ -115,7 +117,14 @@ export function CustomerCharts({ customers }: Props): React.JSX.Element {
 
                 <Legend />
 
-                <Bar dataKey="orders" name="Orders" />
+                <Bar dataKey="orders" name="Orders">
+                  {frequencyData.map((_, index) => (
+                    <Cell
+                      key={`customer-order-bar-${index}`}
+                      fill={colors[index % colors.length]}
+                    />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>

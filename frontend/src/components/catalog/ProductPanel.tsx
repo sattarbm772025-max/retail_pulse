@@ -109,10 +109,10 @@ export default function ProductPanel({
   const [customCategory, setCustomCategory] = useState("");
 
   const save = useMutation({
-    mutationFn: () =>
+    mutationFn: (payload?: ProductPayload) =>
       editing
-        ? catalogApi.updateProduct(editing.id, form)
-        : catalogApi.createProduct(form),
+        ? catalogApi.updateProduct(editing.id, payload ?? form)
+        : catalogApi.createProduct(payload ?? form),
 
     onSuccess: () => {
       client.invalidateQueries({
@@ -257,8 +257,39 @@ export default function ProductPanel({
                   {product.unit_price}
                 </Typography>
 
+                <Typography variant="body2" color={product.status === "ACTIVE" ? "success.main" : "text.secondary"}>
+                  Status: {product.status}
+                </Typography>
+
                 <Button size="small" onClick={() => openForm(product)}>
                   Edit
+                </Button>
+
+                <Button
+                  size="small"
+                  color={product.status === "ACTIVE" ? "warning" : "success"}
+                  onClick={() => {
+                    const updatedProduct = {
+                      name: product.name,
+                      sku: product.sku,
+                      category_id: product.category_id,
+                      brand: product.brand ?? "",
+                      supplier: product.supplier ?? "",
+                      lead_time_days: product.lead_time_days ?? 7,
+                      safety_stock_days: product.safety_stock_days ?? 3,
+                      description: product.description ?? "",
+                      unit_price: product.unit_price,
+                      cost_price: product.cost_price,
+                      stock_quantity: product.stock_quantity,
+                      unit_of_measure: product.unit_of_measure,
+                      status: product.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
+                    };
+                    setEditing(product);
+                    setForm(updatedProduct);
+                    save.mutate(updatedProduct);
+                  }}
+                >
+                  {product.status === "ACTIVE" ? "Deactivate" : "Activate"}
                 </Button>
 
                 <Button
@@ -362,6 +393,22 @@ export default function ProductPanel({
               </FormControl>
             </Grid>
 
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <FormControl fullWidth>
+                <InputLabel>Product Status</InputLabel>
+                <Select
+                  label="Product Status"
+                  value={form.status}
+                  onChange={(event) =>
+                    setForm({ ...form, status: event.target.value })
+                  }
+                >
+                  <MenuItem value="ACTIVE">Active</MenuItem>
+                  <MenuItem value="INACTIVE">Inactive</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
             {form.category_id === 0 && (
               <Grid size={{ xs: 12 }}>
                 <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
@@ -441,7 +488,7 @@ export default function ProductPanel({
               form.unit_price <= 0 ||
               form.cost_price > form.unit_price
             }
-            onClick={() => save.mutate()}
+            onClick={() => save.mutate(form)}
           >
             Save
           </Button>

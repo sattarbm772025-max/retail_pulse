@@ -8,5 +8,6 @@ from .import_batch import ImportBatch, ImportError
 from .notification import Notification
 from .product import Product
 from .refresh_token import RefreshToken
+from .report import ReportHistory, ScheduledReport
 from .sale import Sale, SaleItem
 from .user import User

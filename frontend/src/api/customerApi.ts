@@ -19,11 +19,13 @@ export interface Purchase {
   invoice_number: string;
   sale_date: string;
   total_amount: number;
+  payment_status?: string;
 }
 
 export interface TimelineEvent {
   id: number;
-  event: string;
+  action: string;
+  description: string;
   created_at: string;
 }
 
@@ -97,8 +99,25 @@ export const customerApi = {
       ...response,
       data: {
         ...toCustomer(response.data),
-        purchase_history: response.data.recent_transactions ?? [],
-        timeline: response.data.timeline ?? [],
+        // The customer-detail API intentionally uses concise transaction keys.
+        // Map them once here so the profile component has one stable shape.
+        purchase_history: (response.data.recent_transactions ?? []).map(
+          (transaction: Record<string, any>, index: number) => ({
+            id: transaction.id ?? index,
+            invoice_number: transaction.invoice_number,
+            sale_date: transaction.sale_date ?? transaction.date,
+            total_amount: Number(transaction.total_amount ?? transaction.amount ?? 0),
+            payment_status: transaction.payment_status,
+          }),
+        ),
+        timeline: (response.data.timeline ?? []).map(
+          (entry: Record<string, any>, index: number) => ({
+            id: entry.id ?? index,
+            action: entry.action ?? entry.event ?? "Activity",
+            description: entry.description ?? "",
+            created_at: entry.created_at,
+          }),
+        ),
       } as CustomerProfile,
     };
   },

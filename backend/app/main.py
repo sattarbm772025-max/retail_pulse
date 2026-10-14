@@ -15,6 +15,7 @@ from app.routers.import_data import router as import_router
 from app.routers.notification import router as notification_router
 from app.routers.product import router as product_router
 from app.routers.profile import router as profile_router
+from app.routers.report import router as report_router
 from app.routers.sale import router as sale_router
 from app.routers.user import router as user_router
 
@@ -51,6 +52,7 @@ app.include_router(analytics_router)
 app.include_router(audit_log_router)
 app.include_router(customer_router)
 app.include_router(forecast_router)
+app.include_router(report_router)
 
 
 @app.get("/")

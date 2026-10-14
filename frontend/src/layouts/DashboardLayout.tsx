@@ -68,7 +68,7 @@ const links = [
 
   {
     label: "Reports",
-    path: "/analytics",
+    path: "/reports",
   },
   {
     label: "Data Import",
@@ -111,6 +111,9 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
     <Box
       sx={{
         height: "100%",
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
         bgcolor: "#0b1737",
         color: "white",
         p: 1.5,
@@ -179,38 +182,6 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
         ))}
       </List>
 
-      <Box mt="auto" pt={4}>
-        <Typography
-          variant="caption"
-          sx={{
-            opacity: 0.7,
-          }}
-        >
-          Legend
-        </Typography>
-        <Stack direction="row" spacing={1} mt={1} alignItems="center">
-          <Box
-            sx={{
-              width: 9,
-              height: 9,
-              borderRadius: "50%",
-              bgcolor: "#4ade80",
-            }}
-          />
-          <Typography variant="caption">Active</Typography>
-
-          <Box
-            sx={{
-              width: 9,
-              height: 9,
-              borderRadius: "50%",
-              bgcolor: "#fbbf24",
-              ml: 1,
-            }}
-          />
-          <Typography variant="caption">Low stock</Typography>
-        </Stack>
-      </Box>
     </Box>
   );
 
@@ -229,6 +200,8 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
                 ? "Audit Logs"
                 : location.pathname === "/notifications"
                   ? "Notification Center"
+                  : location.pathname === "/reports"
+                    ? "Business Reports"
                   : "Dashboard";
   return (
     <Box
