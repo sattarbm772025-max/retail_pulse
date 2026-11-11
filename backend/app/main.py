@@ -9,6 +9,7 @@ from app.routers.auth import router as auth_router
 from app.routers.category import router as category_router
 from app.routers.company import router as company_router
 from app.routers.customer import router as customer_router
+from app.routers.data_quality import router as data_quality_router
 from app.routers.forecast import router as forecast_router
 from app.routers.inventory import router as inventory_router
 from app.routers.import_data import router as import_router
@@ -53,6 +54,7 @@ app.include_router(audit_log_router)
 app.include_router(customer_router)
 app.include_router(forecast_router)
 app.include_router(report_router)
+app.include_router(data_quality_router)
 
 
 @app.get("/")

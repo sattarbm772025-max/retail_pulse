@@ -10,6 +10,7 @@ import io
 import json
 import re
 from datetime import datetime, timezone
+from time import perf_counter
 
 from fastapi import HTTPException
 from pydantic import ValidationError
@@ -18,6 +19,7 @@ from sqlalchemy import func, or_
 from app.models.category import Category
 from app.models.customer import Customer
 from app.models.import_batch import ImportBatch, ImportError
+from app.models.inventory import Inventory
 from app.models.product import Product
 from app.models.sale import Sale
 from app.models.user import User
@@ -29,12 +31,17 @@ from app.services.customer_service import create_customer
 from app.services.product_service import create_product
 from app.services.sale_service import create_sale
 from app.services.notification_service import create_notification
+from app.services.inventory_service import apply_movement, ensure_inventory
+from app.core.database import SessionLocal
 
 MAX_FILE_SIZE = 10 * 1024 * 1024
 MAX_ROWS = 10_000
-TYPES = {"PRODUCTS", "CUSTOMERS", "SALES"}
+TYPES = {"PRODUCTS", "INVENTORY", "CUSTOMERS", "SALES"}
 REQUIRED = {
     "PRODUCTS": {"product_name", "sku", "category", "unit_price", "stock_quantity"},
+    # Inventory imports set a product's stock to the supplied value. Duplicate
+    # SKU rows in one file are rejected; an existing inventory record is updated.
+    "INVENTORY": {"sku", "stock_quantity"},
     "CUSTOMERS": {"name", "email", "phone"},
     "SALES": {"customer", "product_name", "quantity", "unit_price", "sale_date"},
 }
@@ -145,6 +152,15 @@ def _row_errors(db, user, kind, rows):
                 _decimal(row.get("unit_price"), "Unit Price", positive=True)
                 _decimal(row.get("stock_quantity"), "Stock Quantity", non_negative=True)
                 seen.add(("sku", sku))
+            elif kind == "INVENTORY":
+                sku = row.get("sku", "").upper()
+                product = product_by_sku.get(sku)
+                if not sku or not product:
+                    raise ValueError("SKU does not exist in this company")
+                _decimal(row.get("stock_quantity"), "Stock Quantity", non_negative=True)
+                if ("inventory_sku", sku) in seen:
+                    raise ValueError("Duplicate inventory SKU in this file")
+                seen.add(("inventory_sku", sku))
             elif kind == "CUSTOMERS":
                 name, email, phone = (
                     row.get("name", ""),
@@ -217,9 +233,14 @@ def _serialize(batch, include_rows=False):
         "successful_records": batch.successful_records,
         "failed_records": batch.failed_records,
         "duplicate_records": batch.duplicate_records,
+        "skipped_records": batch.skipped_records,
+        "processed_records": batch.processed_records,
+        "progress_percent": batch.progress_percent,
         "valid_records": max(batch.total_records - batch.failed_records, 0),
         "created_at": batch.created_at,
         "completed_at": batch.completed_at,
+        "started_at": batch.started_at,
+        "processing_duration_ms": batch.processing_duration_ms,
     }
     if include_rows:
         rows = json.loads(batch.source_data)
@@ -245,7 +266,8 @@ def upload(db, user, import_type, filename, content):
     kind = import_type.upper()
     if kind not in TYPES:
         raise HTTPException(
-            status_code=422, detail="Import type must be PRODUCTS, CUSTOMERS, or SALES"
+            status_code=422,
+            detail="Import type must be PRODUCTS, INVENTORY, CUSTOMERS, or SALES",
         )
     if not filename.lower().endswith(".csv"):
         raise HTTPException(status_code=422, detail="Only CSV files are accepted")
@@ -264,6 +286,12 @@ def upload(db, user, import_type, filename, content):
         status="UPLOADED",
     )
     db.add(batch)
+    db.flush()
+    create_audit_log(
+        db, user.company_id, user.id, "IMPORT_UPLOADED", commit=False,
+        entity_type="IMPORT", resource_id=batch.id, entity_name=filename,
+        description=f"Uploaded {kind} import file: {filename}",
+    )
     db.commit()
     db.refresh(batch)
     return validate(db, user, batch.id, headers)
@@ -292,6 +320,9 @@ def validate(db, user, import_id, headers=None):
     batch.failed_records = len(errors)
     batch.duplicate_records = sum(item["error_type"] == "DUPLICATE" for item in errors)
     batch.successful_records = 0
+    batch.skipped_records = 0
+    batch.processed_records = 0
+    batch.progress_percent = 0
     batch.status = "FAILED" if missing else "VALIDATED"
     db.commit()
     db.refresh(batch)
@@ -352,6 +383,28 @@ def _process(db, user, kind, row):
                 postal_code=row.get("postal_code") or None,
             ),
         )
+    if kind == "INVENTORY":
+        product = (
+            db.query(Product)
+            .filter(
+                Product.company_id == user.company_id,
+                Product.sku == row["sku"].upper(),
+            )
+            .first()
+        )
+        if not product:
+            raise ValueError("SKU does not exist in this company")
+        inventory = ensure_inventory(db, product)
+        target = int(_decimal(row["stock_quantity"], "Stock Quantity", non_negative=True))
+        return apply_movement(
+            db,
+            user,
+            product,
+            "IMPORT",
+            target - inventory.current_stock,
+            row.get("reason") or "Inventory CSV import",
+            row.get("remarks") or None,
+        )
     product = (
         db.query(Product)
         .filter(
@@ -397,65 +450,190 @@ def _process(db, user, kind, row):
     )
 
 
-def process(db, user, import_id):
+def start_processing(db, user, import_id):
+    """Validate and queue an import.
+
+    The router starts ``run_processing_job`` after this transaction is committed.
+    Keeping this short prevents a large CSV from holding the HTTP request open.
+    """
+    existing = _batch(db, user, import_id)
+    if existing.status not in {"UPLOADED", "VALIDATED"}:
+        raise HTTPException(
+            status_code=409,
+            detail="Only a newly uploaded and validated import can be started",
+        )
     result = validate(db, user, import_id)
     if any(e["error_type"] == "COLUMN" for e in result["errors"]):
         raise HTTPException(
             status_code=422, detail="Required columns are missing; import is blocked"
         )
     batch = _batch(db, user, import_id)
-    rows = json.loads(batch.source_data)
-    blocked = {e.row_number for e in batch.errors}
-    runtime_errors = []
-    success = 0
     batch.status = "PROCESSING"
-    db.commit()
-    for index, row in enumerate(rows, start=2):
-        if index in blocked:
-            continue
-        try:
-            _process(db, user, batch.import_type, row)
-            success += 1
-        except (HTTPException, ValidationError, ValueError, Exception) as error:
-            db.rollback()
-            runtime_errors.append(
-                _error(
-                    index,
-                    row,
-                    "PROCESSING",
-                    getattr(error, "detail", str(error))[:1000],
-                )
-            )
-    batch = _batch(db, user, import_id)
-    db.add_all([ImportError(import_id=batch.id, **item) for item in runtime_errors])
-    batch.successful_records = success
-    batch.failed_records += len(runtime_errors)
-    batch.status = "COMPLETED" if not batch.failed_records else "COMPLETED_WITH_ERRORS"
-    batch.completed_at = datetime.now(timezone.utc)
-    notification_type = "IMPORT_COMPLETED" if not batch.failed_records else "IMPORT_FAILED"
+    batch.started_at = datetime.now(timezone.utc)
+    batch.progress_percent = 0
+    batch.processed_records = 0
+    batch.skipped_records = len(batch.errors)
     create_notification(
-        db,
-        company_id=user.company_id,
-        notification_type=notification_type,
-        title="Data import completed" if not batch.failed_records else "Data import completed with errors",
-        message=f"{batch.filename}: {success} records imported, {batch.failed_records} failed.",
-        priority="LOW" if not batch.failed_records else "MEDIUM",
-        resource_type="IMPORT",
-        resource_id=batch.id,
-        dedupe_key=f"import-result:{batch.id}",
+        db, company_id=user.company_id, notification_type="IMPORT_STARTED",
+        title="Data import started", message=f"{batch.filename} is being processed.",
+        priority="LOW", resource_type="IMPORT", resource_id=batch.id,
+        dedupe_key=f"import-start:{batch.id}",
     )
     create_audit_log(
-        db,
-        user.company_id,
-        user.id,
-        f"Data import {batch.status}: {batch.import_type} ({success} rows)",
-        commit=False,
-        entity_type="IMPORT",
-        entity_name=batch.filename,
+        db, user.company_id, user.id, "IMPORT_STARTED", commit=False,
+        entity_type="IMPORT", resource_id=batch.id, entity_name=batch.filename,
+        description=f"Started {batch.import_type} import {batch.id}",
     )
     db.commit()
     db.refresh(batch)
     return _serialize(batch, True)
+
+
+def run_processing_job(user_id: int, import_id: int):
+    """Process a validated batch in a worker-owned database session.
+
+    Rows are partial-success: each application service commits its valid row. A
+    row failure is recorded and does not undo earlier valid rows. The batch is
+    updated every 25 rows so the UI can poll real progress. This deliberately
+    uses FastAPI's background worker for the current single-process deployment;
+    a durable queue can replace this function without changing the API.
+    """
+    db = SessionLocal()
+    user = None
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        batch = db.query(ImportBatch).filter(ImportBatch.id == import_id).first()
+        if not user or not batch or batch.company_id != user.company_id:
+            return
+        rows = json.loads(batch.source_data)
+        blocked = {e.row_number for e in batch.errors}
+        runtime_errors = []
+        success = 0
+        started = perf_counter()
+        for index, row in enumerate(rows, start=2):
+            # A cancellation request is read from the database, not trusted from
+            # the client, before each row is written.
+            db.expire_all()
+            batch = db.query(ImportBatch).filter(ImportBatch.id == import_id).first()
+            if not batch or batch.status == "CANCELLED":
+                break
+            if index in blocked:
+                continue
+            try:
+                _process(db, user, batch.import_type, row)
+                success += 1
+            except Exception as error:
+                db.rollback()
+                runtime_errors.append(
+                    _error(
+                        index,
+                        row,
+                        "PROCESSING",
+                        getattr(error, "detail", str(error))[:1000],
+                    )
+                )
+            processed = success + len(runtime_errors) + len(blocked)
+            if processed % 25 == 0:
+                batch = db.query(ImportBatch).filter(ImportBatch.id == import_id).first()
+                if batch:
+                    batch.processed_records = min(processed, batch.total_records)
+                    batch.progress_percent = min(
+                        int((batch.processed_records / max(batch.total_records, 1)) * 100),
+                        99,
+                    )
+                    db.commit()
+
+        batch = db.query(ImportBatch).filter(ImportBatch.id == import_id).first()
+        if not batch:
+            return
+        if batch.status == "CANCELLED":
+            batch.processing_duration_ms = int((perf_counter() - started) * 1000)
+            batch.completed_at = datetime.now(timezone.utc)
+            batch.processed_records = min(success + len(runtime_errors) + len(blocked), batch.total_records)
+            db.commit()
+            return
+        db.add_all([ImportError(import_id=batch.id, **item) for item in runtime_errors])
+        batch.successful_records = success
+        batch.failed_records += len(runtime_errors)
+        batch.processed_records = success + len(runtime_errors) + len(blocked)
+        batch.progress_percent = 100
+        batch.processing_duration_ms = int((perf_counter() - started) * 1000)
+        batch.status = "COMPLETED" if not batch.failed_records else "COMPLETED_WITH_ERRORS"
+        batch.completed_at = datetime.now(timezone.utc)
+        notification_type = "IMPORT_COMPLETED" if not batch.failed_records else "IMPORT_FAILED"
+        create_notification(
+            db,
+            company_id=user.company_id,
+            notification_type=notification_type,
+            title="Data import completed" if not batch.failed_records else "Data import completed with errors",
+            message=f"{batch.filename}: {success} records imported, {batch.failed_records} failed.",
+            priority="LOW" if not batch.failed_records else "MEDIUM",
+            resource_type="IMPORT",
+            resource_id=batch.id,
+            dedupe_key=f"import-result:{batch.id}",
+        )
+        create_audit_log(
+            db,
+            user.company_id,
+            user.id,
+            "IMPORT_COMPLETED" if not batch.failed_records else "IMPORT_COMPLETED_WITH_ERRORS",
+            commit=False,
+            entity_type="IMPORT",
+            resource_id=batch.id,
+            entity_name=batch.filename,
+            description=f"Finished {batch.import_type} import {batch.id}: {success} imported, {batch.failed_records} failed.",
+        )
+        db.commit()
+    except Exception:
+        db.rollback()
+        batch = db.query(ImportBatch).filter(ImportBatch.id == import_id).first()
+        if batch:
+            batch.status = "FAILED"
+            batch.completed_at = datetime.now(timezone.utc)
+            batch.progress_percent = 100
+            create_notification(
+                db, company_id=batch.company_id, notification_type="IMPORT_FAILED",
+                title="Data import failed", message=f"{batch.filename} could not be processed. Review the import history for details.",
+                priority="MEDIUM", resource_type="IMPORT", resource_id=batch.id,
+                dedupe_key=f"import-result:{batch.id}",
+            )
+            if user:
+                create_audit_log(
+                    db, batch.company_id, user.id, "IMPORT_FAILED", commit=False,
+                    entity_type="IMPORT", resource_id=batch.id, entity_name=batch.filename,
+                    description=f"Import {batch.id} failed during background processing.", status="FAILED",
+                )
+            db.commit()
+    finally:
+        db.close()
+
+
+def cancel(db, user, import_id):
+    batch = _batch(db, user, import_id)
+    if batch.status != "PROCESSING":
+        raise HTTPException(status_code=409, detail="Only a processing import can be cancelled")
+    batch.status = "CANCELLED"
+    create_audit_log(
+        db, user.company_id, user.id, "IMPORT_CANCELLED", commit=False,
+        entity_type="IMPORT", resource_id=batch.id, entity_name=batch.filename,
+        description=f"Cancelled {batch.import_type} import {batch.id}",
+    )
+    create_notification(
+        db, company_id=user.company_id, notification_type="SYSTEM_ALERT",
+        title="Data import cancelled", message=f"{batch.filename} was cancelled.",
+        priority="LOW", resource_type="IMPORT", resource_id=batch.id,
+        dedupe_key=f"import-cancel:{batch.id}",
+    )
+    db.commit()
+    db.refresh(batch)
+    return _serialize(batch, True)
+
+
+def process(db, user, import_id):
+    """Backward-compatible synchronous entry used only by older callers."""
+    queued = start_processing(db, user, import_id)
+    run_processing_job(user.id, import_id)
+    return detail(db, user, queued["id"])
 
 
 def history(db, user, page=1, page_size=10):

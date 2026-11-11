@@ -79,6 +79,10 @@ const links = [
     path: "/audit-logs",
   },
   {
+    label: "Data Quality",
+    path: "/data-quality",
+  },
+  {
     label: "Notifications",
     path: "/notifications",
   },
@@ -147,7 +151,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
       </Stack>
 
       <List disablePadding>
-        {links.filter((link) => !["Data Import", "Audit Logs"].includes(link.label) || ["SUPER_ADMIN", "COMPANY_ADMIN"].includes(profile?.role ?? "")).map((link) => (
+        {links.filter((link) => !["Data Import", "Audit Logs", "Data Quality"].includes(link.label) || ["SUPER_ADMIN", "COMPANY_ADMIN"].includes(profile?.role ?? "")).map((link) => (
           <ListItemButton
             key={link.label}
             selected={
@@ -198,6 +202,8 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
               ? "Data Import"
               : location.pathname === "/audit-logs"
                 ? "Audit Logs"
+                  : location.pathname === "/data-quality"
+                    ? "Data Quality & Reconciliation"
                 : location.pathname === "/notifications"
                   ? "Notification Center"
                   : location.pathname === "/reports"

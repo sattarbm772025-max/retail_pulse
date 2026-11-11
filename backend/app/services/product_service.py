@@ -5,6 +5,7 @@ from app.models.category import Category
 from app.models.product import Product
 from app.services.audit_service import create_audit_log
 from app.services.inventory_service import ensure_inventory
+from app.services.data_quality_service import check_product_after_change
 
 # -----------------------------
 # Helpers
@@ -113,6 +114,7 @@ def create_product(db, current_user, request):
 
     # create inventory automatically
     ensure_inventory(db, product)
+    check_product_after_change(db, current_user, product)
 
     create_audit_log(
         db,
@@ -217,6 +219,8 @@ def update_product(product_id, request, db, current_user):
     for key, value in request.model_dump().items():
 
         setattr(product, key, value)
+
+    check_product_after_change(db, current_user, product)
 
     if old_status != product.status:
 

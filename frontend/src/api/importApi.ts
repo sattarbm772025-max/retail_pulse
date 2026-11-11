@@ -9,6 +9,9 @@ export const importApi = {
   },
   validate: (id: number) => api.post(`/imports/${id}/validate`),
   process: (id: number) => api.post(`/imports/${id}/process`),
+  cancel: (id: number) => api.post(`/imports/${id}/cancel`),
+  status: (id: number) => api.get(`/imports/${id}/status`),
+  detail: (id: number) => api.get(`/imports/${id}`),
   history: (page = 1) => api.get(`/imports/history?page=${page}&page_size=10`),
   errors: (id: number) => api.get(`/imports/${id}/errors`, { responseType: "blob" }),
 };

@@ -1,4 +1,4 @@
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import {
   Alert,
   Box,
@@ -37,6 +37,10 @@ type Batch = {
   valid_records: number;
   failed_records: number;
   duplicate_records: number;
+  skipped_records?: number;
+  processed_records?: number;
+  progress_percent?: number;
+  processing_duration_ms?: number | null;
   successful_records: number;
   preview?: Record<string, string>[];
   detected_columns?: string[];
@@ -70,6 +74,8 @@ const templates: Record<string, string> = {
     "Product Name,SKU,Category,Unit Price,Stock Quantity,Cost Price,Brand,Supplier\nWireless Mouse,WM-100,Accessories,799,50,450,RetailPulse,Main Supplier\n",
   CUSTOMERS:
     "Name,Email,Phone,Customer Type,Address,City,State,Country,Postal Code\nAsha Kumar,asha@example.com,+919876543210,RETAIL,12 Market Road,Chennai,Tamil Nadu,India,600001\n",
+  INVENTORY:
+    "SKU,Stock Quantity,Reason,Remarks\nWM-100,75,Opening stock count,Verified during monthly count\n",
   SALES:
     "Customer,Product,Quantity,Unit Price,Sale Date,Sales Channel,Payment Method,Payment Status,Notes\nAsha Kumar,Wireless Mouse,2,799,2026-09-09,RETAIL_STORE,CASH,PAID,Imported sample sale\n",
 };
@@ -92,6 +98,21 @@ export function DataImportPage() {
     queryFn: async () => (await importApi.history()).data,
     staleTime: 30_000,
   });
+  const processingStatus = useQuery({
+    queryKey: ["import-status", batch?.id],
+    queryFn: async () => (await importApi.status(batch!.id)).data as Batch,
+    enabled: batch?.status === "PROCESSING",
+    refetchInterval: batch?.status === "PROCESSING" ? 1000 : false,
+  });
+  useEffect(() => {
+    if (!processingStatus.data) return;
+    setBatch((current) =>
+      current ? { ...current, ...processingStatus.data } : current,
+    );
+    if (processingStatus.data.status !== "PROCESSING") {
+      client.invalidateQueries({ queryKey: ["import-history"] });
+    }
+  }, [processingStatus.data, client]);
   const upload = useMutation({
     mutationFn: () => importApi.upload(type, file!),
     onSuccess: ({ data }) => {
@@ -118,6 +139,15 @@ export function DataImportPage() {
     onError: (e: any) =>
       setFileError(e.response?.data?.detail || "Import processing failed"),
   });
+  const cancel = useMutation({
+    mutationFn: (id: number) => importApi.cancel(id),
+    onSuccess: ({ data }) => {
+      setBatch(data);
+      client.invalidateQueries({ queryKey: ["import-history"] });
+    },
+    onError: (e: any) =>
+      setFileError(e.response?.data?.detail || "Could not cancel this import"),
+  });
   const chooseFile = (event: ChangeEvent<HTMLInputElement>) => {
     const chosen = event.target.files?.[0] || null;
     setFileError("");
@@ -133,7 +163,7 @@ export function DataImportPage() {
     }
     setFile(chosen);
   };
-  const busy = upload.isPending || validate.isPending || process.isPending;
+  const busy = upload.isPending || validate.isPending || process.isPending || cancel.isPending;
   const headers = batch?.detected_columns || [];
   return (
     <DashboardLayout>
@@ -165,6 +195,7 @@ export function DataImportPage() {
                       }}
                     >
                       <MenuItem value="PRODUCTS">Products</MenuItem>
+                      <MenuItem value="INVENTORY">Inventory</MenuItem>
                       <MenuItem value="CUSTOMERS">Customers</MenuItem>
                       <MenuItem value="SALES">Sales Transactions</MenuItem>
                     </Select>
@@ -254,6 +285,7 @@ export function DataImportPage() {
                       ["Valid", batch.valid_records],
                       ["Invalid", batch.failed_records],
                       ["Duplicates", batch.duplicate_records],
+                      ["Skipped", batch.skipped_records ?? 0],
                     ].map(([label, value]) => (
                       <Grid size={{ xs: 6, md: 3 }} key={String(label)}>
                         <Card variant="outlined">
@@ -322,17 +354,42 @@ export function DataImportPage() {
                       onClick={() => process.mutate(batch.id)}
                     >
                       {process.isPending
-                        ? "Importing…"
-                        : "Import valid records"}
+                        ? "Starting…"
+                        : "Start background import"}
                     </Button>
+                    {batch.status === "PROCESSING" && (
+                      <Button
+                        color="error"
+                        variant="outlined"
+                        disabled={cancel.isPending}
+                        onClick={() => cancel.mutate(batch.id)}
+                      >
+                        Cancel import
+                      </Button>
+                    )}
                   </Stack>
+                  {(batch.status === "PROCESSING" || batch.progress_percent) && (
+                    <Box>
+                      <Stack direction="row" justifyContent="space-between" mb={0.5}>
+                        <Typography variant="body2">Processing progress</Typography>
+                        <Typography variant="body2">{batch.progress_percent ?? 0}%</Typography>
+                      </Stack>
+                      <LinearProgress variant="determinate" value={batch.progress_percent ?? 0} />
+                      {processingStatus.isError && (
+                        <Typography variant="caption" color="error">
+                          Progress refresh failed; the import may still be running.
+                        </Typography>
+                      )}
+                    </Box>
+                  )}
                 </Stack>
               </CardContent>
             </Card>
             {batch.status.startsWith("COMPLETED") && (
               <Alert severity={batch.failed_records ? "warning" : "success"}>
                 Import completed: {batch.successful_records} added,{" "}
-                {batch.failed_records} failed.
+                {batch.failed_records} failed, {batch.skipped_records ?? 0} skipped.
+                {batch.processing_duration_ms != null && ` Processed in ${batch.processing_duration_ms} ms.`}
               </Alert>
             )}
           </>
@@ -353,9 +410,11 @@ export function DataImportPage() {
                         <TableCell>ID</TableCell>
                         <TableCell>Type / file</TableCell>
                         <TableCell>Uploaded by</TableCell>
+                        <TableCell>Uploaded</TableCell>
                         <TableCell>Totals</TableCell>
                         <TableCell>Status</TableCell>
-                        <TableCell>Errors</TableCell>
+                        <TableCell>Duration</TableCell>
+                        <TableCell>Actions</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -372,6 +431,11 @@ export function DataImportPage() {
                               {item.uploaded_by_name || "—"}
                             </TableCell>
                             <TableCell>
+                              {item.created_at
+                                ? new Date(item.created_at).toLocaleString()
+                                : "—"}
+                            </TableCell>
+                            <TableCell>
                               {item.successful_records}/{item.total_records}
                             </TableCell>
                             <TableCell>
@@ -382,6 +446,19 @@ export function DataImportPage() {
                               />
                             </TableCell>
                             <TableCell>
+                              {item.processing_duration_ms != null
+                                ? `${(item.processing_duration_ms / 1000).toFixed(1)}s`
+                                : "—"}
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                size="small"
+                                onClick={async () =>
+                                  setBatch((await importApi.detail(item.id)).data)
+                                }
+                              >
+                                View
+                              </Button>
                               {item.failed_records ? (
                                 <Button
                                   size="small"
@@ -396,14 +473,14 @@ export function DataImportPage() {
                                   CSV
                                 </Button>
                               ) : (
-                                "—"
+                                null
                               )}
                             </TableCell>
                           </TableRow>
                         ))
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={6} align="center">
+                          <TableCell colSpan={8} align="center">
                             <Stack alignItems="center" spacing={1} py={2}>
                               <Typography fontWeight={600}>
                                 No imports yet

@@ -239,6 +239,11 @@ def apply_movement(
         reason,
     )
 
+    # This path is used by both manual adjustments and sale stock movements.
+    # Run only the affected-record check, not a full-company reconciliation.
+    from app.services.data_quality_service import check_inventory_after_change
+    check_inventory_after_change(db, current_user, inventory)
+
     return inventory
 
 

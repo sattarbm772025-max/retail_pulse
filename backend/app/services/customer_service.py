@@ -8,6 +8,7 @@ from app.models.customer import Customer, CustomerPurchaseSummary, CustomerTimel
 from app.models.notification import Notification
 from app.models.sale import Sale, SaleItem
 from app.services.audit_service import create_audit_log
+from app.services.data_quality_service import check_customer_after_change
 
 
 def _summary(db, customer_id: int) -> CustomerPurchaseSummary:
@@ -174,6 +175,7 @@ def create_customer(db, user, payload):
     )
     db.add(customer)
     db.flush()
+    check_customer_after_change(db, user, customer)
     summary = _summary(db, customer.id)
     db.add(
         CustomerTimeline(
@@ -222,6 +224,7 @@ def update_customer(db, user, customer_id, payload):
         )
     for key, value in payload.model_dump().items():
         setattr(customer, key, value)
+    check_customer_after_change(db, user, customer)
     db.add(
         CustomerTimeline(
             customer_id=customer.id,

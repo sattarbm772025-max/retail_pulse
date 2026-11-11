@@ -2,6 +2,7 @@ from .audit_log import AuditLog
 from .category import Category
 from .company import Company
 from .customer import Customer, CustomerPurchaseSummary, CustomerTimeline
+from .data_quality import DataQualityIssue, ReconciliationRun
 from .forecast import DemandForecast, ForecastHistory
 from .inventory import Inventory, InventoryMovement
 from .import_batch import ImportBatch, ImportError

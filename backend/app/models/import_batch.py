@@ -25,11 +25,16 @@ class ImportBatch(Base):
     successful_records = Column(Integer, nullable=False, default=0)
     failed_records = Column(Integer, nullable=False, default=0)
     duplicate_records = Column(Integer, nullable=False, default=0)
+    skipped_records = Column(Integer, nullable=False, default=0)
+    processed_records = Column(Integer, nullable=False, default=0)
+    progress_percent = Column(Integer, nullable=False, default=0)
     status = Column(String(30), nullable=False, default="PENDING")
     created_at = Column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     completed_at = Column(DateTime(timezone=True), nullable=True)
+    started_at = Column(DateTime(timezone=True), nullable=True)
+    processing_duration_ms = Column(Integer, nullable=True)
     errors = relationship(
         "ImportError", back_populates="batch", cascade="all, delete-orphan"
     )

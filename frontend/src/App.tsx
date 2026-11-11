@@ -34,6 +34,7 @@ import { DataImportPage } from "./pages/DataImportPage";
 import { AuditLogsPage } from "./pages/AuditLogsPage";
 import { NotificationsPage } from "./pages/NotificationsPage";
 import { ReportsPage } from "./pages/ReportsPage";
+import { DataQualityPage } from "./pages/DataQualityPage";
 
 const theme = createTheme({
   palette: {
@@ -135,6 +136,7 @@ export default function App() {
                   <Route path="/catalog" element={<CatalogPage />} />
                   <Route path="/data-import" element={<DataImportPage />} />
                   <Route path="/audit-logs" element={<AuditLogsPage />} />
+                  <Route path="/data-quality" element={<DataQualityPage />} />
                 </Route>
               </Route>
 

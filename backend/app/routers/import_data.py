@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, UploadFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -31,9 +31,21 @@ def validate_import(
 
 @router.post("/{import_id}/process")
 def process_import(
+    import_id: int,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_user=Depends(admin),
+):
+    batch = import_service.start_processing(db, current_user, import_id)
+    background_tasks.add_task(import_service.run_processing_job, current_user.id, import_id)
+    return batch
+
+
+@router.post("/{import_id}/cancel")
+def cancel_import(
     import_id: int, db: Session = Depends(get_db), current_user=Depends(admin)
 ):
-    return import_service.process(db, current_user, import_id)
+    return import_service.cancel(db, current_user, import_id)
 
 
 @router.get("/history")
@@ -56,6 +68,23 @@ def download_errors(
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
+
+
+@router.get("/{import_id}/status")
+def import_status(
+    import_id: int, db: Session = Depends(get_db), current_user=Depends(admin)
+):
+    """Small polling payload for the Day 2 progress UI."""
+    batch = import_service.detail(db, current_user, import_id)
+    return {
+        key: batch[key]
+        for key in (
+            "id", "status", "total_records", "processed_records",
+            "successful_records", "failed_records", "skipped_records",
+            "progress_percent", "started_at", "completed_at",
+            "processing_duration_ms",
+        )
+    }
 
 
 @router.get("/{import_id}")
